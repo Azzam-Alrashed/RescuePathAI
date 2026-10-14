@@ -10,19 +10,12 @@ export type HazardType = "missile" | "flood" | "fire" | "road" | "trapped";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
-export type ResponseTeam =
-  | "civil_defense"
-  | "ambulance"
-  | "water_rescue"
-  | "fire_rescue"
-  | "police";
+export type ResponseTeam = "civil_defense" | "ambulance" | "water_rescue" | "fire_rescue" | "police";
 
 /** What residents inside the affected zone should do. */
 export type ProtectiveAction = "shelter" | "evacuate" | "avoid";
 
-export type Zone =
-  | { kind: "circle"; center: LatLng; radiusM: number }
-  | { kind: "polygon"; points: LatLng[] };
+export type Zone = { kind: "circle"; center: LatLng; radiusM: number } | { kind: "polygon"; points: LatLng[] };
 
 export interface Incident {
   id: string;

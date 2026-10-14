@@ -1,15 +1,18 @@
 "use client";
 
+import { Languages, LoaderCircle, RotateCcw, Smartphone, TriangleAlert, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { CaseDetail } from "@/components/dashboard/CaseDetail";
 import { CaseQueue } from "@/components/dashboard/CaseQueue";
-import { SEVERITY_STYLE } from "@/components/severity";
+import { HAZARD_ICON } from "@/components/icons";
+import { SeverityDot } from "@/components/severity";
+import { Button, buttonClass } from "@/components/ui";
 import { SCENARIOS } from "@/lib/data/scenarios";
 import { byPriority, effectiveSeverity, isOpen, planDispatch } from "@/lib/dispatch";
-import { HAZARD_ICONS, I18nProvider, useI18n } from "@/lib/i18n";
+import { I18nProvider, SEVERITY_LABELS, useI18n } from "@/lib/i18n";
 import type { Severity } from "@/lib/types";
 import { useOpsState } from "@/lib/use-ops-state";
 
@@ -34,74 +37,103 @@ function DashboardShell() {
   const plan = useMemo(() => (state ? planDispatch(state.cases, state.teams) : new Map()), [state]);
 
   if (!state) {
-    return <div className="flex h-dvh items-center justify-center text-slate-500">…</div>;
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-brand-navy text-slate-300">
+        <BrandMark />
+        <LoaderCircle size={20} className="animate-spin" aria-label={t("loading")} />
+      </div>
+    );
   }
 
   const openCases = state.cases.filter(isOpen);
   // Default to the most urgent open case.
-  const selected =
-    state.cases.find((c) => c.id === selectedId) ?? [...openCases].sort(byPriority)[0] ?? null;
+  const selected = state.cases.find((c) => c.id === selectedId) ?? [...openCases].sort(byPriority)[0] ?? null;
   const scenario = SCENARIOS.find((s) => s.id === state.scenarioId);
+  const ScenarioIcon = scenario ? HAZARD_ICON[scenario.hazard] : null;
   const available = state.teams.filter((tm) => tm.status === "available").length;
   const bySeverity = (s: Severity) => openCases.filter((c) => effectiveSeverity(c) === s).length;
 
   return (
-    <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-dvh flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-brand-navy px-4 py-2.5 text-white">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <BrandMark />
-          <div>
-            <h1 className="text-lg font-bold leading-tight">
-              {t("appName")} · {t("opsTitle")}
+          <div className="min-w-0">
+            <h1 className="truncate text-lg leading-tight font-bold">
+              {t("appName")} <span className="font-normal text-slate-400">/</span> {t("opsTitle")}
             </h1>
-            <p className="text-xs text-slate-400">{t("prototypeBadge")}</p>
+            <p className="truncate text-xs text-slate-300/80">{t("prototypeBadge")}</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {(["critical", "high", "medium", "low"] as const).map((s) => (
-            <span key={s} className="rounded-full bg-white/10 px-2.5 py-1 tabular-nums">
-              {SEVERITY_STYLE[s].dot} {formatNumber(bySeverity(s))}
+        <div className="flex items-center gap-2">
+          <span
+            className={`me-1 flex items-center gap-1.5 text-xs font-medium ${connected ? "text-emerald-300" : "text-red-300"}`}
+            role="status"
+          >
+            <span className="relative flex h-2 w-2">
+              {connected && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              )}
+              <span
+                className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`}
+              />
             </span>
-          ))}
-          <span className="rounded-full bg-white/10 px-2.5 py-1">
-            {t("teamsAvailable")}: {formatNumber(available)}/{formatNumber(state.teams.length)}
-          </span>
-          {scenario && (
-            <span className="rounded-full bg-red-600 px-2.5 py-1 font-semibold">
-              {HAZARD_ICONS[scenario.hazard]} {pick(scenario.name)}
-            </span>
-          )}
-        </div>
-
-        <div className="ms-auto flex items-center gap-2 text-sm">
-          <span className={`flex items-center gap-1.5 text-xs ${connected ? "text-green-400" : "text-red-400"}`}>
-            <span className={`h-2 w-2 rounded-full ${connected ? "animate-pulse bg-green-400" : "bg-red-400"}`} />
             {connected ? t("live") : t("connectionLost")}
           </span>
-          <button onClick={reset} className="rounded-lg border border-white/20 px-3 py-1.5 hover:bg-white/10">
-            ↺ {t("resetDemo")}
-          </button>
-          <Link href="/" className="rounded-lg border border-white/20 px-3 py-1.5 hover:bg-white/10">
-            {t("residentLink")}
+          <Button variant="header" size="sm" icon={RotateCcw} onClick={reset}>
+            <span className="hidden sm:inline">{t("resetDemo")}</span>
+          </Button>
+          <Link href="/" className={buttonClass("header", "sm")} aria-label={t("residentLink")}>
+            <Smartphone size={14} aria-hidden />
+            <span className="hidden sm:inline">{t("residentLink")}</span>
           </Link>
-          <button
-            onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
-            className="rounded-lg border border-white/20 px-3 py-1.5 hover:bg-white/10"
-          >
+          <Button variant="header" size="sm" icon={Languages} onClick={() => setLocale(locale === "ar" ? "en" : "ar")}>
             {t("switchLang")}
-          </button>
+          </Button>
         </div>
       </header>
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-800 dark:bg-slate-900">
+        {(["critical", "high", "medium", "low"] as const).map((s) => (
+          <div
+            key={s}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1 dark:border-slate-800"
+          >
+            <SeverityDot severity={s} className="h-2.5 w-2.5" />
+            <span className="text-base font-bold tabular-nums">{formatNumber(bySeverity(s))}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{pick(SEVERITY_LABELS[s])}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1 dark:border-slate-800">
+          <Users size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <span className="text-base font-bold tabular-nums">
+            {formatNumber(available)}
+            <span className="text-sm font-normal text-slate-400">/{formatNumber(state.teams.length)}</span>
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">{t("teamsAvailable")}</span>
+        </div>
+        {scenario && ScenarioIcon && (
+          <div className="ms-auto flex items-center gap-2 rounded-xl bg-red-600 px-3 py-1.5 text-sm font-semibold text-white">
+            <ScenarioIcon size={15} aria-hidden />
+            <span className="text-xs font-normal opacity-80">{t("activeScenario")}:</span>
+            {pick(scenario.name)}
+          </div>
+        )}
+      </div>
+
       {error && (
-        <p role="alert" className="bg-red-100 px-4 py-1.5 text-center text-sm text-red-900 dark:bg-red-950 dark:text-red-200">
+        <p
+          role="alert"
+          className="flex items-center justify-center gap-2 bg-red-50 px-4 py-1.5 text-sm text-red-900 dark:bg-red-500/10 dark:text-red-200"
+        >
+          <TriangleAlert size={15} aria-hidden />
           {error}
         </p>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:grid lg:grid-cols-[340px_minmax(0,1fr)_400px] lg:overflow-hidden">
-        <aside className="order-2 border-slate-200 lg:order-1 lg:min-h-0 lg:border-e dark:border-slate-800">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:grid lg:grid-cols-[360px_minmax(0,1fr)_420px] lg:overflow-hidden">
+        <aside className="order-2 border-slate-200 bg-slate-50 lg:order-1 lg:min-h-0 lg:border-e dark:border-slate-800 dark:bg-slate-950">
           <CaseQueue cases={state.cases} selectedId={selected?.id ?? null} onSelect={setSelectedId} now={now} />
         </aside>
 
@@ -109,7 +141,7 @@ function DashboardShell() {
           <OpsMap state={state} plan={plan} selected={selected} onSelect={setSelectedId} />
         </main>
 
-        <aside className="order-3 border-slate-200 lg:min-h-0 lg:overflow-y-auto lg:border-s dark:border-slate-800">
+        <aside className="order-3 border-slate-200 bg-slate-50 lg:min-h-0 lg:overflow-y-auto lg:border-s dark:border-slate-800 dark:bg-slate-950">
           {selected ? (
             <CaseDetail
               key={selected.id}

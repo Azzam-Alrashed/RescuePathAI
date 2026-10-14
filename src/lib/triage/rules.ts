@@ -2,16 +2,73 @@ import type { HazardType, ResponseTeam, Severity, SosInput, TriageResult } from 
 
 // Keyword lists cover Arabic and English report text.
 const KEYWORDS: Record<HazardType, string[]> = {
-  missile: ["صاروخ", "صواريخ", "شظايا", "شظية", "انفجار", "قصف", "missile", "rocket", "debris", "explosion", "shrapnel"],
-  flood: ["سيل", "سيول", "فيضان", "غرق", "مياه", "ماء", "مطر", "أمطار", "وادي", "flood", "water", "rain", "drown", "wadi"],
+  missile: [
+    "صاروخ",
+    "صواريخ",
+    "شظايا",
+    "شظية",
+    "انفجار",
+    "قصف",
+    "missile",
+    "rocket",
+    "debris",
+    "explosion",
+    "shrapnel",
+  ],
+  flood: [
+    "سيل",
+    "سيول",
+    "فيضان",
+    "غرق",
+    "مياه",
+    "ماء",
+    "مطر",
+    "أمطار",
+    "وادي",
+    "flood",
+    "water",
+    "rain",
+    "drown",
+    "wadi",
+  ],
   fire: ["حريق", "نار", "دخان", "اشتعال", "لهب", "fire", "smoke", "burning", "flames"],
   road: ["حادث", "تصادم", "سيارة", "مركبة", "انقلاب", "accident", "crash", "collision", "car", "vehicle"],
-  trapped: ["محاصر", "محاصرين", "عالق", "عالقين", "محبوس", "تحت الأنقاض", "trapped", "stuck", "rubble", "still inside", "cannot get out", "can't get out"],
+  trapped: [
+    "محاصر",
+    "محاصرين",
+    "عالق",
+    "عالقين",
+    "محبوس",
+    "تحت الأنقاض",
+    "trapped",
+    "stuck",
+    "rubble",
+    "still inside",
+    "cannot get out",
+    "can't get out",
+  ],
 };
 
 const LIFE_THREAT = [
-  "فاقد الوعي", "لا يتنفس", "نزيف", "ينزف", "إصابة خطيرة", "يغرق", "ترتفع", "يرتفع", "مختنق", "حروق",
-  "unconscious", "not breathing", "bleeding", "drowning", "rising", "severe", "choking", "burns", "dying",
+  "فاقد الوعي",
+  "لا يتنفس",
+  "نزيف",
+  "ينزف",
+  "إصابة خطيرة",
+  "يغرق",
+  "ترتفع",
+  "يرتفع",
+  "مختنق",
+  "حروق",
+  "unconscious",
+  "not breathing",
+  "bleeding",
+  "drowning",
+  "rising",
+  "severe",
+  "choking",
+  "burns",
+  "dying",
 ];
 
 const INJURY = ["مصاب", "مصابين", "إصابة", "جرح", "كسر", "injured", "hurt", "wounded", "broken"];
@@ -56,13 +113,8 @@ export function triageWithRules(input: SosInput): TriageResult {
   else if (minor) severity = "low";
   else severity = "medium";
 
-  const vulnerable = input.shareVulnerable
-    ? Object.values(input.vulnerable).filter(Boolean).length
-    : 0;
-  const priority = Math.min(
-    100,
-    SEVERITY_BASE[severity] + Math.min(input.peopleCount - 1, 5) * 2 + vulnerable * 3,
-  );
+  const vulnerable = input.shareVulnerable ? Object.values(input.vulnerable).filter(Boolean).length : 0;
+  const priority = Math.min(100, SEVERITY_BASE[severity] + Math.min(input.peopleCount - 1, 5) * 2 + vulnerable * 3);
 
   const reasons: { ar: string[]; en: string[] } = { ar: [], en: [] };
   if (hazard === "trapped") {
