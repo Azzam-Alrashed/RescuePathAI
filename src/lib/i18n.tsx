@@ -69,6 +69,8 @@ const UI = {
     en: "e.g. Three of us are trapped on the second floor and the water is rising",
   },
   sosPeople: { ar: "عدد الأشخاص", en: "Number of people" },
+  decrease: { ar: "إنقاص", en: "Decrease" },
+  increase: { ar: "زيادة", en: "Increase" },
   sosVulnerable: { ar: "يوجد من يحتاج دعمًا إضافيًا", en: "Someone needs extra support" },
   children: { ar: "أطفال", en: "Children" },
   elderly: { ar: "كبار سن", en: "Older adults" },
@@ -127,13 +129,14 @@ const UI = {
   affectedZone: { ar: "منطقة متأثرة", en: "Affected zone" },
 
   // Resident view of the response to their report
-  resp_new: { ar: "⏳ بانتظار مراجعة فريق الطوارئ", en: "⏳ Waiting for review by the emergency team" },
-  resp_reviewed: { ar: "👀 تمت المراجعة، وسيُكلَّف فريق قريبًا", en: "👀 Reviewed – a team will be assigned shortly" },
-  resp_assigned: { ar: "🚨 المساعدة في الطريق", en: "🚨 Help is on the way" },
-  resp_on_scene: { ar: "✅ وصل الفريق إلى موقعك", en: "✅ The team has arrived" },
-  resp_resolved: { ar: "✔️ أُغلق البلاغ", en: "✔️ Case closed" },
+  resp_new: { ar: "بانتظار مراجعة فريق الطوارئ", en: "Waiting for review by the emergency team" },
+  resp_reviewed: { ar: "تمت المراجعة، وسيُكلَّف فريق قريبًا", en: "Reviewed – a team will be assigned shortly" },
+  resp_assigned: { ar: "المساعدة في الطريق", en: "Help is on the way" },
+  resp_on_scene: { ar: "وصل الفريق إلى موقعك", en: "The team has arrived" },
+  resp_resolved: { ar: "أُغلق البلاغ", en: "Case closed" },
 
   // Operations dashboard
+  loading: { ar: "جارٍ التحميل…", en: "Loading…" },
   opsTitle: { ar: "لوحة العمليات", en: "Operations centre" },
   opsLink: { ar: "لوحة العمليات", en: "Operations dashboard" },
   residentLink: { ar: "تطبيق السكان", en: "Resident app" },
@@ -199,22 +202,6 @@ export const HAZARD_LABELS: Record<HazardType, Bilingual> = {
   fire: { ar: "حريق", en: "Fire" },
   road: { ar: "حادث طريق", en: "Road accident" },
   trapped: { ar: "أشخاص محاصرون", en: "People trapped" },
-};
-
-export const HAZARD_ICONS: Record<HazardType, string> = {
-  missile: "🚀",
-  flood: "🌊",
-  fire: "🔥",
-  road: "🚗",
-  trapped: "🆘",
-};
-
-export const TEAM_ICONS: Record<ResponseTeam, string> = {
-  civil_defense: "🚨",
-  ambulance: "🚑",
-  water_rescue: "🚤",
-  fire_rescue: "🚒",
-  police: "🚓",
 };
 
 export const SEVERITY_LABELS: Record<Severity, Bilingual> = {

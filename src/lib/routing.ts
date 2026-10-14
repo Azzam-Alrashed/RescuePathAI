@@ -17,12 +17,7 @@ export function straightLine(from: LatLng, to: LatLng, mode: TravelMode): Route 
 }
 
 /** Fetches a street route; falls back to a straight line when offline or the service fails. */
-export async function fetchRoute(
-  from: LatLng,
-  to: LatLng,
-  mode: TravelMode,
-  signal?: AbortSignal,
-): Promise<Route> {
+export async function fetchRoute(from: LatLng, to: LatLng, mode: TravelMode, signal?: AbortSignal): Promise<Route> {
   // OSRM takes lng,lat order.
   const coords = `${from[1]},${from[0]};${to[1]},${to[0]}`;
   const url = `${OSRM_BASE[mode]}/${coords}?overview=full&geometries=geojson`;

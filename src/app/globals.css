@@ -15,28 +15,133 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Map markers rendered as Leaflet divIcons (prefixed to beat leaflet.css specificity) */
-.leaflet-marker-icon.rpa-marker {
+::selection {
+  background: rgb(45 212 164 / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid #2dd4a4;
+  outline-offset: 2px;
+}
+
+/* Slim scrollbars for the side panels */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+}
+
+/* ---------- Map ---------- */
+
+/* `html` prefix: leaflet.css loads later and would otherwise win. */
+html .leaflet-container {
+  font-family: var(--font-sans);
+  background: #e5e7eb;
+}
+
+/* Mute the street map so hazard zones, routes and markers carry the colour. */
+.leaflet-tile-pane {
+  filter: saturate(0.5) contrast(0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  html .leaflet-container {
+    background: #0b1220;
+  }
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) saturate(0.25) brightness(0.82) contrast(0.92);
+  }
+  .leaflet-bar a,
+  .leaflet-control-attribution {
+    background: rgb(15 23 42 / 0.85) !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+  }
+  .leaflet-control-attribution a {
+    color: #93c5fd !important;
+  }
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip,
+  .leaflet-tooltip {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-color: #334155;
+  }
+  .leaflet-tooltip-top::before {
+    border-top-color: #0f172a;
+  }
+}
+
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.2) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-tooltip {
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.18);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+}
+
+/* Icon markers (see pinIcon in components/map/shared.tsx) */
+.rpa-icon {
+  background: none;
+  border: none;
+}
+
+.rpa-pin {
   display: flex;
+  width: 100%;
+  height: 100%;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.3);
+  transition: transform 0.15s ease;
+}
+.rpa-pin--solid {
+  background: var(--pin);
+  color: #fff;
+  border: 2px solid #fff;
+}
+.rpa-pin--outline {
   background: #fff;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
-  font-size: 18px;
-  line-height: 1;
+  color: var(--pin);
+  border: 2px solid var(--pin);
 }
-.rpa-marker--hazard {
-  border: 2px solid #dc2626;
-  animation: rpa-pulse 1.6s ease-out infinite;
+.rpa-pin--square {
+  border-radius: 10px;
 }
-.rpa-marker--shelter {
-  border: 2px solid #16a34a;
+.rpa-pin--pulse {
+  animation: rpa-pulse 1.8s ease-out infinite;
 }
-.rpa-marker--assembly {
-  border: 2px solid #0891b2;
+.rpa-pin--selected {
+  outline: 3px solid var(--pin);
+  outline-offset: 3px;
+}
+.leaflet-marker-icon:hover .rpa-pin {
+  transform: scale(1.1);
 }
 
+@keyframes rpa-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--pin) 55%, transparent),
+      0 2px 6px rgb(15 23 42 / 0.3);
+  }
+  100% {
+    box-shadow:
+      0 0 0 14px color-mix(in srgb, var(--pin) 0%, transparent),
+      0 2px 6px rgb(15 23 42 / 0.3);
+  }
+}
+
+/* The resident's own position */
 .leaflet-marker-icon.rpa-user {
   display: flex;
   align-items: center;
@@ -50,43 +155,15 @@ body {
   border-radius: 9999px;
   background: #2563eb;
   border: 3px solid #fff;
-  box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25), 0 1px 4px rgb(0 0 0 / 0.4);
+  box-shadow:
+    0 0 0 6px rgb(37 99 235 / 0.25),
+    0 1px 4px rgb(0 0 0 / 0.4);
 }
 
-@keyframes rpa-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgb(220 38 38 / 0.55);
+@media (prefers-reduced-motion: reduce) {
+  .rpa-pin--pulse,
+  .animate-pulse,
+  .animate-ping {
+    animation: none;
   }
-  100% {
-    box-shadow: 0 0 0 14px rgb(220 38 38 / 0);
-  }
 }
-
-.leaflet-container {
-  font-family: var(--font-sans);
-}
-
-/* Operations dashboard markers */
-.leaflet-marker-icon.rpa-case {
-  border: 3px solid #94a3b8;
-  cursor: pointer;
-}
-.leaflet-marker-icon.rpa-case--low { border-color: #16a34a; }
-.leaflet-marker-icon.rpa-case--medium { border-color: #ca8a04; }
-.leaflet-marker-icon.rpa-case--high { border-color: #ea580c; }
-.leaflet-marker-icon.rpa-case--critical {
-  border-color: #dc2626;
-  animation: rpa-pulse 1.6s ease-out infinite;
-}
-.leaflet-marker-icon.rpa-case--selected {
-  font-size: 22px;
-  outline: 3px solid #0f172a;
-  outline-offset: 2px;
-}
-.leaflet-marker-icon.rpa-team {
-  border: 2px solid #16a34a;
-  border-radius: 8px;
-  font-size: 16px;
-}
-.leaflet-marker-icon.rpa-team--dispatched { border-color: #f59e0b; background: #fffbeb; }
-.leaflet-marker-icon.rpa-team--on_scene { border-color: #2563eb; background: #eff6ff; }

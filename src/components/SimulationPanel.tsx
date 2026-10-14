@@ -1,18 +1,30 @@
 "use client";
 
+import { ChevronDown, LocateFixed, MapPin, SlidersHorizontal, Square, WifiOff } from "lucide-react";
 import { useState } from "react";
+import { HazardTile } from "@/components/icons";
+import { Button } from "@/components/ui";
 import { SCENARIOS } from "@/lib/data/scenarios";
 import { zoneSamplePoint } from "@/lib/geo";
-import { HAZARD_ICONS, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
 
 export function SimulationPanel() {
   const { t, pick } = useI18n();
-  const { scenario, startScenario, stopScenario, simulatedOffline, setSimulatedOffline, setUserPos, inZone, requestFocus } =
-    useAppState();
+  const {
+    scenario,
+    startScenario,
+    stopScenario,
+    simulatedOffline,
+    setSimulatedOffline,
+    setUserPos,
+    inZone,
+    requestFocus,
+  } = useAppState();
   // null = default: collapsed on phones, open on wider screens (decided by CSS to avoid a hydration mismatch).
   const [open, setOpen] = useState<boolean | null>(null);
   const bodyVisibility = open === null ? "hidden md:block" : open ? "block" : "hidden";
+  const chevron = open === null ? "rotate-180 md:rotate-0" : open ? "" : "rotate-180";
 
   function locateMe() {
     navigator.geolocation?.getCurrentPosition((p) => {
@@ -22,76 +34,86 @@ export function SimulationPanel() {
   }
 
   return (
-    <div className="w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+    <div className="w-76 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-900/10 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
       <button
+        type="button"
         onClick={() => setOpen((o) => (o === null ? !window.matchMedia("(min-width: 768px)").matches : !o))}
-        className="flex w-full items-center justify-between px-4 py-3 text-sm font-bold"
+        className="flex w-full items-center gap-2 px-4 py-3 text-sm font-bold"
       >
-        <span>🎛️ {t("simTitle")}</span>
-        <span className="text-slate-400">
-          {open === null ? (
-            <>
-              <span className="md:hidden">▸</span>
-              <span className="hidden md:inline">▾</span>
-            </>
-          ) : open ? (
-            "▾"
-          ) : (
-            "▸"
-          )}
-        </span>
+        <SlidersHorizontal size={16} className="text-slate-400" aria-hidden />
+        <span className="flex-1 text-start">{t("simTitle")}</span>
+        <ChevronDown size={16} className={`text-slate-400 transition-transform ${chevron}`} aria-hidden />
       </button>
 
-      <div className={`${bodyVisibility} space-y-3 border-t border-slate-200 px-4 pb-4 pt-3 text-sm dark:border-slate-700`}>
+      <div
+        className={`${bodyVisibility} space-y-4 border-t border-slate-200 px-3 pt-3 pb-4 text-sm dark:border-slate-800`}
+      >
         <div className="space-y-1.5">
           {SCENARIOS.map((s) => {
             const active = scenario?.id === s.id;
             return (
               <button
+                type="button"
                 key={s.id}
                 onClick={() => (active ? stopScenario() : startScenario(s.id))}
-                className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-start transition ${
+                aria-pressed={active}
+                className={`flex w-full items-center gap-2.5 rounded-xl border p-2 text-start transition ${
                   active
-                    ? "border-red-500 bg-red-50 font-semibold text-red-700 dark:bg-red-950 dark:text-red-300"
-                    : "border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    ? "border-red-300 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10"
+                    : "border-transparent hover:bg-slate-50 dark:hover:bg-slate-800"
                 }`}
               >
-                <span className="text-lg">{HAZARD_ICONS[s.hazard]}</span>
-                <span className="flex-1">{pick(s.name)}</span>
-                {active && <span className="text-xs">■ {t("simStop")}</span>}
+                <HazardTile hazard={s.hazard} size="sm" />
+                <span
+                  className={`flex-1 leading-tight ${active ? "font-semibold text-red-700 dark:text-red-300" : ""}`}
+                >
+                  {pick(s.name)}
+                </span>
+                {active && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                    <Square size={9} fill="currentColor" aria-hidden />
+                    {t("simStop")}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2 px-1">
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t("simLocation")}</div>
-          <div className="flex gap-2">
-            <button
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              icon={MapPin}
               disabled={!scenario || inZone}
               onClick={() => scenario && setUserPos(zoneSamplePoint(scenario.zone))}
-              className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs disabled:opacity-40 dark:border-slate-700"
+              className="h-auto min-h-8 py-1.5 whitespace-normal"
             >
-              📍 {t("simMoveInto")}
-            </button>
-            <button
-              onClick={locateMe}
-              className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs dark:border-slate-700"
-            >
-              🛰️ {t("simUseGps")}
-            </button>
+              {t("simMoveInto")}
+            </Button>
+            <Button size="sm" icon={LocateFixed} onClick={locateMe} className="h-auto min-h-8 py-1.5 whitespace-normal">
+              {t("simUseGps")}
+            </Button>
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center justify-between gap-2">
-          <span>📵 {t("simOffline")}</span>
-          <input
-            type="checkbox"
-            role="switch"
-            checked={simulatedOffline}
-            onChange={(e) => setSimulatedOffline(e.target.checked)}
-            className="h-4 w-4 accent-red-600"
-          />
+        <label className="flex cursor-pointer items-center justify-between gap-2 px-1">
+          <span className="flex items-center gap-2">
+            <WifiOff size={15} className="text-slate-400" aria-hidden />
+            {t("simOffline")}
+          </span>
+          <span className="relative inline-flex">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={simulatedOffline}
+              onChange={(e) => setSimulatedOffline(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span className="h-6 w-10 rounded-full bg-slate-300 transition peer-checked:bg-red-600 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-green dark:bg-slate-700" />
+            <span className="absolute start-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4 rtl:peer-checked:-translate-x-4" />
+          </span>
         </label>
       </div>
     </div>

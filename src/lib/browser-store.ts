@@ -49,5 +49,9 @@ function subscribeOnline(cb: () => void) {
 }
 
 export function useBrowserOnline(): boolean {
-  return useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true);
+  return useSyncExternalStore(
+    subscribeOnline,
+    () => navigator.onLine,
+    () => true,
+  );
 }
