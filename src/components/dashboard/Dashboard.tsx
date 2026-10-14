@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { CaseDetail } from "@/components/dashboard/CaseDetail";
 import { CaseQueue } from "@/components/dashboard/CaseQueue";
 import { SEVERITY_STYLE } from "@/components/severity";
@@ -46,9 +47,9 @@ function DashboardShell() {
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-slate-900 px-4 py-2.5 text-white">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-brand-navy px-4 py-2.5 text-white">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-lg">🛟</div>
+          <BrandMark />
           <div>
             <h1 className="text-lg font-bold leading-tight">
               {t("appName")} · {t("opsTitle")}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AlertPanel } from "@/components/AlertPanel";
+import { BrandMark } from "@/components/BrandMark";
 import { MapView } from "@/components/map/MapView";
 import { ReportsList } from "@/components/ReportsList";
 import { SimulationPanel } from "@/components/SimulationPanel";
@@ -33,8 +34,8 @@ function Shell() {
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="flex items-center gap-3 bg-slate-900 px-4 py-2.5 text-white">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600 text-lg">🛟</div>
+      <header className="flex items-center gap-3 bg-brand-navy px-4 py-2.5 text-white">
+        <BrandMark />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-bold leading-tight">{t("appName")}</h1>
           <p className="truncate text-xs text-slate-400">{t("prototypeBadge")}</p>

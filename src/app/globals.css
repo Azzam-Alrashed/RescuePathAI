@@ -4,6 +4,13 @@
   --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
 }
 
+/* Brand colours (see brand/README.md) */
+@theme {
+  --color-brand-navy: #0e2238;
+  --color-brand-green: #2dd4a4;
+  --color-brand-amber: #ffb020;
+}
+
 body {
   font-family: var(--font-sans);
 }
