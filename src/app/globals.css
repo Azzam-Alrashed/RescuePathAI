@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* Map markers rendered as Leaflet divIcons (prefixed to beat leaflet.css specificity) */
+.leaflet-marker-icon.rpa-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+  font-size: 18px;
+  line-height: 1;
+}
+.rpa-marker--hazard {
+  border: 2px solid #dc2626;
+  animation: rpa-pulse 1.6s ease-out infinite;
+}
+.rpa-marker--shelter {
+  border: 2px solid #16a34a;
+}
+.rpa-marker--assembly {
+  border: 2px solid #0891b2;
+}
+
+.leaflet-marker-icon.rpa-user {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.rpa-user-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25), 0 1px 4px rgb(0 0 0 / 0.4);
+}
+
+@keyframes rpa-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(220 38 38 / 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(220 38 38 / 0);
+  }
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+}
