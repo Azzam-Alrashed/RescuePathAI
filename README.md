@@ -2,6 +2,8 @@
 
 منصة ذكية لإدارة الكوارث وإنقاذ الأرواح. An AI-powered platform that helps residents stay safe during disasters and missile threats, and helps emergency teams prioritise and respond faster.
 
+**Live demo:** [rescuepath-ai.vercel.app](https://rescuepath-ai.vercel.app) (resident app) · [/dashboard](https://rescuepath-ai.vercel.app/dashboard) (operations dashboard)
+
 > ⚠️ **Prototype.** All alerts, zones, shelters, routes and incidents are simulated demo data for Riyadh. This is not a real emergency service. In a real emergency call **911**.
 
 ## Features
@@ -45,6 +47,10 @@ Open http://localhost:3000/dashboard in a second window to see the report arrive
 
 `POST /api/reports` sends each new report to Claude (`claude-opus-5-5`, low effort, structured output) when Anthropic credentials are available. If there are no credentials, or the call fails, the app falls back to a keyword- and rule-based classifier (`src/lib/triage/rules.ts`), which also triages the sample cases, so an SOS is never blocked by the AI service. Set `TRIAGE_MODE=rules` to skip the AI entirely.
 
+### Deployment
+
+The live demo is hosted on Vercel, and every push to `main` deploys automatically. Add `ANTHROPIC_API_KEY` under the Vercel project's environment variables to enable Claude triage there; without it the demo uses the rule-based classifier. Because cases live in server memory, the hosted demo can reset after it has been idle.
+
 ## Project structure
 
 ```
@@ -64,7 +70,7 @@ src/
     store.tsx, i18n.tsx        # resident state and Arabic/English strings
 ```
 
-Tech: Next.js 16, React 19, TypeScript, Tailwind CSS 4, Leaflet with OpenStreetMap tiles, OSRM routing (routing.openstreetmap.de), and the Anthropic SDK.
+Tech: Next.js 16, React 19, TypeScript, Tailwind CSS 4, Lucide icons, Leaflet with OpenStreetMap tiles, OSRM routing (routing.openstreetmap.de), and the Anthropic SDK.
 
 ## Roadmap
 
