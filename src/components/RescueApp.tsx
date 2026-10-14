@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { AlertPanel } from "@/components/AlertPanel";
 import { MapView } from "@/components/map/MapView";
@@ -38,6 +39,12 @@ function Shell() {
           <h1 className="truncate text-lg font-bold leading-tight">{t("appName")}</h1>
           <p className="truncate text-xs text-slate-400">{t("prototypeBadge")}</p>
         </div>
+        <Link
+          href="/dashboard"
+          className="hidden rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10 sm:block"
+        >
+          🧭 {t("opsLink")}
+        </Link>
         <button
           onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
           className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10"

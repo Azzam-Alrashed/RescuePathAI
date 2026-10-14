@@ -6,7 +6,7 @@ const KEYWORDS: Record<HazardType, string[]> = {
   flood: ["سيل", "سيول", "فيضان", "غرق", "مياه", "ماء", "مطر", "أمطار", "وادي", "flood", "water", "rain", "drown", "wadi"],
   fire: ["حريق", "نار", "دخان", "اشتعال", "لهب", "fire", "smoke", "burning", "flames"],
   road: ["حادث", "تصادم", "سيارة", "مركبة", "انقلاب", "accident", "crash", "collision", "car", "vehicle"],
-  trapped: ["محاصر", "محاصرين", "عالق", "عالقين", "محبوس", "تحت الأنقاض", "trapped", "stuck", "rubble", "cannot get out", "can't get out"],
+  trapped: ["محاصر", "محاصرين", "عالق", "عالقين", "محبوس", "تحت الأنقاض", "trapped", "stuck", "rubble", "still inside", "cannot get out", "can't get out"],
 };
 
 const LIFE_THREAT = [
@@ -31,7 +31,7 @@ function detectHazard(text: string, declared: SosInput["hazard"]): HazardType {
 }
 
 function pickTeam(hazard: HazardType, text: string, injured: boolean, minor: boolean): ResponseTeam {
-  if (hazard === "fire") return "fire_rescue";
+  if (hazard === "fire" || (hazard === "trapped" && includesAny(text, KEYWORDS.fire))) return "fire_rescue";
   // e.g. a road closed by pooled water: traffic control, not a rescue.
   if (minor) return "police";
   if (hazard === "flood" || (hazard === "trapped" && includesAny(text, KEYWORDS.flood))) return "water_rescue";
@@ -40,7 +40,7 @@ function pickTeam(hazard: HazardType, text: string, injured: boolean, minor: boo
   return "civil_defense";
 }
 
-const SEVERITY_BASE: Record<Severity, number> = { low: 15, medium: 40, high: 65, critical: 85 };
+export const SEVERITY_BASE: Record<Severity, number> = { low: 15, medium: 40, high: 65, critical: 85 };
 
 /** Deterministic fallback triage used when the AI service is unavailable. */
 export function triageWithRules(input: SosInput): TriageResult {

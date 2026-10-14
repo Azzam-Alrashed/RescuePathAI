@@ -1,15 +1,9 @@
 "use client";
 
-import { HAZARD_ICONS, HAZARD_LABELS, SEVERITY_LABELS, TEAM_LABELS, useI18n } from "@/lib/i18n";
+import { SeverityBadge } from "@/components/severity";
+import { HAZARD_ICONS, HAZARD_LABELS, TEAM_ICONS, TEAM_LABELS, useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
-import type { Severity, SosStatus } from "@/lib/types";
-
-export const SEVERITY_STYLE: Record<Severity, { dot: string; badge: string }> = {
-  low: { dot: "🟢", badge: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300" },
-  medium: { dot: "🟡", badge: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" },
-  high: { dot: "🟠", badge: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" },
-  critical: { dot: "🔴", badge: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300" },
-};
+import type { SosStatus } from "@/lib/types";
 
 const STATUS_STYLE: Record<SosStatus, string> = {
   queued: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300",
@@ -51,6 +45,29 @@ export function ReportsList() {
             </button>
           )}
 
+          {r.response && (
+            <div
+              className={`mt-3 rounded-lg p-3 text-sm font-medium ${
+                r.response.status === "assigned" || r.response.status === "on_scene"
+                  ? "bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-200"
+                  : "bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-200"
+              }`}
+            >
+              {t(`resp_${r.response.status}`)}
+              {r.response.team && (
+                <div className="mt-1 font-normal">
+                  {TEAM_ICONS[r.response.team.type]} {pick(r.response.team.name)}
+                  {r.response.status === "assigned" && r.response.etaS !== undefined && (
+                    <>
+                      {" · "}
+                      {t("eta")}: ~{formatNumber(Math.max(1, Math.round(r.response.etaS / 60)))} {t("min")}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {r.triage && (
             <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
               <div className="mb-2 flex items-center justify-between">
@@ -60,9 +77,7 @@ export function ReportsList() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${SEVERITY_STYLE[r.triage.severity].badge}`}>
-                  {SEVERITY_STYLE[r.triage.severity].dot} {pick(SEVERITY_LABELS[r.triage.severity])}
-                </span>
+                <SeverityBadge severity={r.triage.severity} />
                 <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs dark:bg-slate-700">
                   {HAZARD_ICONS[r.triage.hazard]} {pick(HAZARD_LABELS[r.triage.hazard])}
                 </span>

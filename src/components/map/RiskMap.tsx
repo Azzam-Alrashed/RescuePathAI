@@ -1,33 +1,14 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
-import { Circle, MapContainer, Marker, Polygon, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, Tooltip, useMap } from "react-leaflet";
+import { BaseTiles, emojiIcon, HAZARD_COLOR, RIYADH_CENTER, ZoneShape } from "@/components/map/shared";
 import { SAFE_PLACES } from "@/lib/data/safe-places";
 import { HAZARD_ICONS, useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
 import type { GuidanceRoute } from "@/lib/use-guidance-route";
-import type { HazardType, LatLng, SafePlace, Zone } from "@/lib/types";
-
-const RIYADH_CENTER: LatLng = [24.713, 46.675];
-
-const HAZARD_COLOR: Record<HazardType, string> = {
-  missile: "#dc2626",
-  flood: "#2563eb",
-  fire: "#ea580c",
-  road: "#ca8a04",
-  trapped: "#9333ea",
-};
-
-function emojiIcon(emoji: string, className: string) {
-  return L.divIcon({
-    html: `<span>${emoji}</span>`,
-    className: `rpa-marker ${className}`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
-}
+import type { HazardType, SafePlace } from "@/lib/types";
 
 const userIcon = L.divIcon({
   html: '<span class="rpa-user-dot"></span>',
@@ -35,15 +16,6 @@ const userIcon = L.divIcon({
   iconSize: [26, 26],
   iconAnchor: [13, 13],
 });
-
-function ZoneShape({ zone, color }: { zone: Zone; color: string }) {
-  const style = { color, weight: 2, fillColor: color, fillOpacity: 0.18, dashArray: "6 4" };
-  return zone.kind === "circle" ? (
-    <Circle center={zone.center} radius={zone.radiusM} pathOptions={style} />
-  ) : (
-    <Polygon positions={zone.points} pathOptions={style} />
-  );
-}
 
 /** Re-centres the map when the store asks for it. */
 function FocusController() {
@@ -53,6 +25,8 @@ function FocusController() {
     if (focusKey === 0) return;
     if (scenario) map.flyTo(scenario.focus.center, scenario.focus.zoom, { duration: 1 });
     else map.flyTo(userPos, 13, { duration: 1 });
+    // Stop the fly animation if the map unmounts mid-flight (Leaflet would throw).
+    return () => void map.stop();
     // Only react to explicit focus requests, not every position change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey]);
@@ -94,11 +68,7 @@ export default function RiskMap({ guidance }: { guidance: GuidanceRoute }) {
   return (
     <div dir="ltr" className="h-full w-full">
       <MapContainer center={RIYADH_CENTER} zoom={12} className="h-full w-full" zoomControl={false}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-        />
+        <BaseTiles />
         <FocusController />
 
         {scenario && (

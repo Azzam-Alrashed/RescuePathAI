@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { createPersistentStore, useBrowserOnline } from "@/lib/browser-store";
 import { SCENARIOS } from "@/lib/data/scenarios";
 import { isInZone } from "@/lib/geo";
-import type { LatLng, Scenario, SosInput, SosReport, TriageResult } from "@/lib/types";
+import type { LatLng, ResponseUpdate, Scenario, SosInput, SosReport, TriageResult } from "@/lib/types";
 
 /** Default demo position: Al Olaya, central Riyadh. */
 export const DEFAULT_POSITION: LatLng = [24.705, 46.675];
@@ -50,7 +50,8 @@ async function sendReport(report: SosReport) {
   inFlight.add(report.id);
   updateReport(report.id, { status: "sending" });
   try {
-    const input: SosInput = {
+    const body: SosInput & { id: string } = {
+      id: report.id,
       hazard: report.hazard,
       description: report.description,
       peopleCount: report.peopleCount,
@@ -59,13 +60,13 @@ async function sendReport(report: SosReport) {
       shareVulnerable: report.shareVulnerable,
       position: report.position,
     };
-    const res = await fetch("/api/triage", {
+    const res = await fetch("/api/reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const triage = (await res.json()) as TriageResult;
+    const { triage } = (await res.json()) as { triage: TriageResult };
     updateReport(report.id, { status: "received", triage });
   } catch {
     updateReport(report.id, { status: navigator.onLine ? "failed" : "queued" });
@@ -82,6 +83,32 @@ function submitSos(input: SosInput): SosReport {
 }
 
 const retryReport = (id: string) => updateReport(id, { status: "queued" });
+
+const RESPONSE_POLL_MS = 5000;
+
+/** Pulls the operations centre's response (team assigned, on scene…) for open reports. */
+async function refreshResponses() {
+  const ids = reportsStore
+    .get()
+    .filter((r) => r.status === "received" && r.response?.status !== "resolved")
+    .map((r) => r.id);
+  if (ids.length === 0) return;
+  try {
+    const res = await fetch(`/api/reports?ids=${ids.join(",")}`);
+    if (!res.ok) return;
+    const updates = new Map(((await res.json()) as ResponseUpdate[]).map((u) => [u.id, u]));
+    reportsStore.set((rs) => rs.map((r) => (updates.has(r.id) ? { ...r, response: updates.get(r.id) } : r)));
+  } catch {}
+}
+
+/** Shares the simulated city-wide scenario with the operations dashboard. */
+function shareScenario(id: string | null) {
+  fetch("/api/ops/scenario", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+}
 const clearReports = () => reportsStore.set([]);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
@@ -100,16 +127,26 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     reports.filter((r) => r.status === "queued").forEach((r) => void sendReport(r));
   }, [offline, reports]);
 
+  useEffect(() => {
+    if (offline) return;
+    const timer = setInterval(refreshResponses, RESPONSE_POLL_MS);
+    return () => clearInterval(timer);
+  }, [offline]);
+
   const startScenario = useCallback((id: string) => {
     setScenario(SCENARIOS.find((s) => s.id === id) ?? null);
     setFocusKey((k) => k + 1);
+    shareScenario(id);
   }, []);
 
   const value = useMemo<AppState>(
     () => ({
       scenario,
       startScenario,
-      stopScenario: () => setScenario(null),
+      stopScenario: () => {
+        setScenario(null);
+        shareScenario(null);
+      },
       userPos,
       setUserPos,
       inZone: scenario ? isInZone(userPos, scenario.zone) : false,

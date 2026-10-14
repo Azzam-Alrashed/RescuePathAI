@@ -125,6 +125,72 @@ const UI = {
   mapClosedRoad: { ar: "طريق مغلق", en: "Closed road" },
   legend: { ar: "دليل الخريطة", en: "Map legend" },
   affectedZone: { ar: "منطقة متأثرة", en: "Affected zone" },
+
+  // Resident view of the response to their report
+  resp_new: { ar: "⏳ بانتظار مراجعة فريق الطوارئ", en: "⏳ Waiting for review by the emergency team" },
+  resp_reviewed: { ar: "👀 تمت المراجعة، وسيُكلَّف فريق قريبًا", en: "👀 Reviewed – a team will be assigned shortly" },
+  resp_assigned: { ar: "🚨 المساعدة في الطريق", en: "🚨 Help is on the way" },
+  resp_on_scene: { ar: "✅ وصل الفريق إلى موقعك", en: "✅ The team has arrived" },
+  resp_resolved: { ar: "✔️ أُغلق البلاغ", en: "✔️ Case closed" },
+
+  // Operations dashboard
+  opsTitle: { ar: "لوحة العمليات", en: "Operations centre" },
+  opsLink: { ar: "لوحة العمليات", en: "Operations dashboard" },
+  residentLink: { ar: "تطبيق السكان", en: "Resident app" },
+  queue: { ar: "قائمة البلاغات", en: "Report queue" },
+  filterOpen: { ar: "مفتوحة", en: "Open" },
+  filterClosed: { ar: "مغلقة", en: "Closed" },
+  openCases: { ar: "بلاغات مفتوحة", en: "Open reports" },
+  teamsAvailable: { ar: "فرق متاحة", en: "Teams available" },
+  resetDemo: { ar: "إعادة ضبط العرض", en: "Reset demo" },
+  live: { ar: "مباشر", en: "Live" },
+  connectionLost: { ar: "انقطع الاتصال بالخادم", en: "Lost connection to server" },
+  activeScenario: { ar: "السيناريو النشط", en: "Active scenario" },
+  queueEmpty: { ar: "لا توجد بلاغات", en: "No reports" },
+  selectCase: { ar: "اختر بلاغًا من القائمة أو الخريطة", en: "Select a report from the queue or the map" },
+  needsReview: { ar: "بحاجة لمراجعة", en: "Needs review" },
+  case_new: { ar: "جديد", en: "New" },
+  case_reviewed: { ar: "تمت المراجعة", en: "Reviewed" },
+  case_assigned: { ar: "فريق في الطريق", en: "Team en route" },
+  case_on_scene: { ar: "الفريق في الموقع", en: "Team on scene" },
+  case_resolved: { ar: "مغلق", en: "Closed" },
+  team_available: { ar: "متاح", en: "Available" },
+  team_dispatched: { ar: "في مهمة", en: "Dispatched" },
+  team_on_scene: { ar: "في الموقع", en: "On scene" },
+  reportDetails: { ar: "تفاصيل البلاغ", en: "Report details" },
+  people: { ar: "الأشخاص", en: "People" },
+  received: { ar: "وقت الاستلام", en: "Received" },
+  origin: { ar: "المصدر", en: "Source" },
+  origin_resident: { ar: "بلاغ من السكان", en: "From a resident" },
+  origin_demo: { ar: "بلاغ تجريبي", en: "Demo report" },
+  extraSupport: { ar: "يحتاجون دعمًا إضافيًا", en: "Need extra support" },
+  humanReviewTitle: { ar: "المراجعة البشرية", en: "Human review" },
+  reviewHint: {
+    ar: "اعتمد تقييم الذكاء الاصطناعي أو صحّح درجة الخطورة.",
+    en: "Confirm the AI assessment or correct the severity.",
+  },
+  confirmAssessment: { ar: "اعتماد التقييم", en: "Confirm assessment" },
+  changedFrom: { ar: "عُدّلت من", en: "Changed from" },
+  dispatchTitle: { ar: "التوزيع الذكي للفرق", en: "AI dispatch" },
+  approveDispatch: { ar: "اعتماد وإرسال الفريق", en: "Approve & dispatch" },
+  otherTeam: { ar: "أو اختر فريقًا آخر", en: "Or choose another team" },
+  noTeamAvailable: { ar: "لا يوجد فريق مناسب متاح حاليًا", en: "No suitable team is available right now" },
+  dispatchReason: {
+    ar: "أقرب فريق متاح من النوع المطلوب، مع حجز الفرق للبلاغات الأخطر أولًا.",
+    en: "Nearest available team of the needed type, reserving teams for more urgent reports first.",
+  },
+  substituteNote: {
+    ar: "لا يتوفر فريق من النوع المطلوب؛ هذا أقرب فريق بديل قادر على الاستجابة.",
+    en: "No team of the needed type is free; this is the nearest substitute that can respond.",
+  },
+  assignedTeam: { ar: "الفريق المكلّف", en: "Assigned team" },
+  markOnScene: { ar: "وصل الفريق", en: "Team arrived" },
+  resolveCase: { ar: "إغلاق البلاغ", en: "Close case" },
+  dispatchDisclaimer: {
+    ar: "اقتراحات الذكاء الاصطناعي لدعم القرار فقط؛ القرار النهائي لمسؤول العمليات.",
+    en: "AI suggestions support the decision; the dispatcher makes the final call.",
+  },
+  teams: { ar: "الفرق", en: "Teams" },
 } satisfies Record<string, Bilingual>;
 
 export const HAZARD_LABELS: Record<HazardType, Bilingual> = {
@@ -141,6 +207,14 @@ export const HAZARD_ICONS: Record<HazardType, string> = {
   fire: "🔥",
   road: "🚗",
   trapped: "🆘",
+};
+
+export const TEAM_ICONS: Record<ResponseTeam, string> = {
+  civil_defense: "🚨",
+  ambulance: "🚑",
+  water_rescue: "🚤",
+  fire_rescue: "🚒",
+  police: "🚓",
 };
 
 export const SEVERITY_LABELS: Record<Severity, Bilingual> = {

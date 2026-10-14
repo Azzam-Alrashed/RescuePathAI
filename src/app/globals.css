@@ -58,3 +58,28 @@ body {
 .leaflet-container {
   font-family: var(--font-sans);
 }
+
+/* Operations dashboard markers */
+.leaflet-marker-icon.rpa-case {
+  border: 3px solid #94a3b8;
+  cursor: pointer;
+}
+.leaflet-marker-icon.rpa-case--low { border-color: #16a34a; }
+.leaflet-marker-icon.rpa-case--medium { border-color: #ca8a04; }
+.leaflet-marker-icon.rpa-case--high { border-color: #ea580c; }
+.leaflet-marker-icon.rpa-case--critical {
+  border-color: #dc2626;
+  animation: rpa-pulse 1.6s ease-out infinite;
+}
+.leaflet-marker-icon.rpa-case--selected {
+  font-size: 22px;
+  outline: 3px solid #0f172a;
+  outline-offset: 2px;
+}
+.leaflet-marker-icon.rpa-team {
+  border: 2px solid #16a34a;
+  border-radius: 8px;
+  font-size: 16px;
+}
+.leaflet-marker-icon.rpa-team--dispatched { border-color: #f59e0b; background: #fffbeb; }
+.leaflet-marker-icon.rpa-team--on_scene { border-color: #2563eb; background: #eff6ff; }

@@ -4,20 +4,12 @@ import { z } from "zod";
 import { triageWithRules } from "@/lib/triage/rules";
 import type { SosInput, TriageResult } from "@/lib/types";
 
-const HAZARDS = ["missile", "flood", "fire", "road", "trapped"] as const;
-
-const SosInputSchema = z.object({
-  hazard: z.enum([...HAZARDS, "unknown"]),
-  description: z.string().max(2000),
-  peopleCount: z.number().int().min(1).max(500),
-  vulnerable: z.object({ children: z.boolean(), elderly: z.boolean(), disabled: z.boolean() }),
-  shareVulnerable: z.boolean(),
-  position: z.tuple([z.number(), z.number()]),
-});
+export const HAZARDS = ["missile", "flood", "fire", "road", "trapped"] as const;
+export const SEVERITIES = ["low", "medium", "high", "critical"] as const;
 
 const TriageSchema = z.object({
   hazard: z.enum(HAZARDS),
-  severity: z.enum(["low", "medium", "high", "critical"]),
+  severity: z.enum(SEVERITIES),
   priority: z.number().int().describe("1 (lowest) to 100 (highest)"),
   team: z.enum(["civil_defense", "ambulance", "water_rescue", "fire_rescue", "police"]),
   reasoning_ar: z.string().describe("One or two short sentences in Arabic"),
@@ -80,20 +72,16 @@ async function triageWithClaude(client: Anthropic, input: SosInput): Promise<Tri
   };
 }
 
-export async function POST(request: Request) {
-  const parsed = SosInputSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return Response.json({ error: "Invalid report" }, { status: 400 });
-  }
-  const input = parsed.data;
-
-  // Set TRIAGE_MODE=rules to skip the AI call entirely (e.g. for offline demos).
+/**
+ * Triage a report with Claude, falling back to the rule-based classifier so an
+ * SOS is never blocked by the AI service. Set TRIAGE_MODE=rules to skip the AI.
+ */
+export async function triageReport(input: SosInput): Promise<TriageResult> {
   if (process.env.TRIAGE_MODE !== "rules") {
     try {
       const result = await triageWithClaude(new Anthropic(), input);
-      if (result) return Response.json(result);
+      if (result) return result;
     } catch (err) {
-      // Never block an SOS on the AI service: log and fall back to rules.
       if (err instanceof Anthropic.APIError) {
         console.error(`Claude triage failed (${err.status ?? "network"}): ${err.message}`);
       } else {
@@ -101,6 +89,5 @@ export async function POST(request: Request) {
       }
     }
   }
-
-  return Response.json(triageWithRules(input));
+  return triageWithRules(input);
 }
