@@ -48,19 +48,19 @@ export function AffectedCounter({
                   type="button"
                   onClick={() => onChange({ ...value, [g]: Math.max(0, n - 1) })}
                   disabled={n <= 0}
-                  className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm transition disabled:opacity-40 dark:bg-slate-900"
+                  className="flex h-10 w-10 items-center justify-center rounded-md md:h-8 md:w-8 bg-white shadow-sm transition disabled:opacity-40 dark:bg-slate-900"
                   aria-label={`${t("decrease")} ${label}`}
                 >
                   <Minus size={14} aria-hidden />
                 </button>
-                <span className="w-7 text-center text-sm font-bold tabular-nums" aria-live="polite">
+                <span className="w-8 text-center text-base font-bold md:text-sm tabular-nums" aria-live="polite">
                   {formatNumber(n)}
                 </span>
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, [g]: Math.min(MAX_PER_GROUP, n + 1) })}
                   disabled={n >= MAX_PER_GROUP}
-                  className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm transition disabled:opacity-40 dark:bg-slate-900"
+                  className="flex h-10 w-10 items-center justify-center rounded-md md:h-8 md:w-8 bg-white shadow-sm transition disabled:opacity-40 dark:bg-slate-900"
                   aria-label={`${t("increase")} ${label}`}
                 >
                   <Plus size={14} aria-hidden />

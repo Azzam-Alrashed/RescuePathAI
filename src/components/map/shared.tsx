@@ -127,7 +127,10 @@ function SizeSync() {
     return () => {
       observer.disconnect();
       // Stop any fly/zoom animation if the map unmounts mid-flight (Leaflet would throw).
-      map.stop();
+      // When the whole page goes away the map may already be removed, and stop() throws.
+      try {
+        map.stop();
+      } catch {}
     };
   }, [map]);
   return null;

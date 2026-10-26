@@ -42,6 +42,8 @@ const KEYWORDS: Record<HazardType, string[]> = {
     "سقوط سقف",
     "سقوط سور",
     "سقوط جدار",
+    "جدار",
+    "انهدم",
     "تصدع",
     "تشقق",
     "ركام",
@@ -50,6 +52,7 @@ const KEYWORDS: Record<HazardType, string[]> = {
     "crack",
     "roof fell",
     "wall fell",
+    "wall collapsed",
   ],
   trapped: [
     "محاصر",
@@ -99,7 +102,7 @@ function detectHazard(text: string, input: SosInput): HazardType {
   // "Trapped" wins over the underlying hazard: it is what drives the rescue need.
   if (includesAny(text, KEYWORDS.trapped) || input.affected.trapped > 0) return "trapped";
   // The description wins over the resident's quick selection when they disagree.
-  for (const type of ["fire", "collapse", "flood", "missile"] as const) {
+  for (const type of ["fire", "missile", "collapse", "flood"] as const) {
     if (includesAny(text, KEYWORDS[type])) return type;
   }
   // Then what the photo shows.

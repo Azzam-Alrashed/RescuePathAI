@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  ArrowLeft,
   BellRing,
   ChartColumn,
   Inbox,
   Languages,
+  List,
   LoaderCircle,
+  Map as MapIcon,
   RotateCcw,
   Smartphone,
   TriangleAlert,
@@ -18,6 +21,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { CaseDetail } from "@/components/dashboard/CaseDetail";
 import { CaseQueue } from "@/components/dashboard/CaseQueue";
+import { MapSkeleton } from "@/components/map/MapSkeleton";
+import { useFreshMapKey } from "@/components/map/MapView";
+import { Menu } from "@/components/Menu";
 import { HAZARD_ICON } from "@/components/icons";
 import { SeverityDot } from "@/components/severity";
 import { Button, buttonClass } from "@/components/ui";
@@ -29,7 +35,7 @@ import { useOpsState } from "@/lib/use-ops-state";
 
 const OpsMap = dynamic(() => import("./OpsMap"), {
   ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-slate-200 dark:bg-slate-800" />,
+  loading: () => <MapSkeleton />,
 });
 
 export function Dashboard() {
@@ -44,12 +50,16 @@ function DashboardShell() {
   const { t, pick, locale, setLocale, formatNumber } = useI18n();
   const { state, connected, error, now, act, reset } = useOpsState();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Phones show one pane at a time: the queue or the map, with the case detail opening over them.
+  const [mobileView, setMobileView] = useState<"queue" | "map">("queue");
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const plan = useMemo(
     () => (state ? planDispatch(state.cases, state.teams) : new Map<string, TeamOption[]>()),
     [state],
   );
   const [alertCase, dismissAlert] = useCriticalAlert(state);
+  const mapKey = useFreshMapKey();
 
   if (!state) {
     return (
@@ -60,6 +70,11 @@ function DashboardShell() {
     );
   }
 
+  const select = (id: string) => {
+    setSelectedId(id);
+    setDetailOpen(true);
+  };
+
   const openCases = state.cases.filter(isOpen);
   // Default to the most urgent open case.
   const selected = state.cases.find((c) => c.id === selectedId) ?? [...openCases].sort(byPriority)[0] ?? null;
@@ -67,26 +82,21 @@ function DashboardShell() {
   const available = state.teams.filter((tm) => tm.status === "available").length;
   const busy = state.teams.length - available;
   const bySeverity = (s: Severity) => openCases.filter((c) => effectiveSeverity(c) === s).length;
+  const toggleLocale = () => setLocale(locale === "ar" ? "en" : "ar");
 
   return (
     <div className="flex h-dvh flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-brand-navy px-4 py-2.5 text-white">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <BrandMark />
-          <div className="min-w-0">
-            <h1 className="truncate text-lg leading-tight font-bold">
-              {t("appName")} <span className="font-normal text-slate-400">/</span> {t("opsTitle")}
-            </h1>
-            <p className="truncate text-xs text-slate-300/80">{t("prototypeBadge")}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span
-            className={`me-1 flex items-center gap-1.5 text-xs font-medium ${connected ? "text-emerald-300" : "text-red-300"}`}
-            role="status"
-          >
-            <span className="relative flex h-2 w-2">
+      <header className="flex items-center gap-3 bg-brand-navy px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 text-white">
+        <BrandMark />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg leading-tight font-bold">
+            <span className="hidden sm:inline">
+              {t("appName")} <span className="font-normal text-slate-400">/</span>{" "}
+            </span>
+            {t("opsTitle")}
+          </h1>
+          <p className="flex items-center gap-1.5 truncate text-xs text-slate-300/80" role="status">
+            <span className="relative flex h-2 w-2 shrink-0">
               {connected && (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               )}
@@ -94,36 +104,60 @@ function DashboardShell() {
                 className={`relative inline-flex h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`}
               />
             </span>
-            {connected ? t("live") : t("connectionLost")}
-          </span>
-          <Link href="/dashboard/reports" className={buttonClass("header", "sm")} aria-label={t("reportsPage")}>
+            <span className={connected ? "text-emerald-300" : "text-red-300"}>
+              {connected ? t("live") : t("connectionLost")}
+            </span>
+            <span className="hidden truncate sm:inline">· {t("prototypeBadge")}</span>
+          </p>
+        </div>
+
+        <div className="hidden items-center gap-2 md:flex">
+          <Link href="/dashboard/reports" className={buttonClass("header", "sm")}>
             <ChartColumn size={14} aria-hidden />
-            <span className="hidden sm:inline">{t("reportsPage")}</span>
+            {t("reportsPage")}
           </Link>
           <Button variant="header" size="sm" icon={RotateCcw} onClick={reset}>
-            <span className="hidden sm:inline">{t("resetDemo")}</span>
+            {t("resetDemo")}
           </Button>
-          <Link href="/" className={buttonClass("header", "sm")} aria-label={t("residentLink")}>
+          <Link href="/" className={buttonClass("header", "sm")}>
             <Smartphone size={14} aria-hidden />
-            <span className="hidden sm:inline">{t("residentLink")}</span>
+            {t("residentLink")}
           </Link>
-          <Button variant="header" size="sm" icon={Languages} onClick={() => setLocale(locale === "ar" ? "en" : "ar")}>
+          <Button variant="header" size="sm" icon={Languages} onClick={toggleLocale}>
             {t("switchLang")}
           </Button>
         </div>
+        <button
+          type="button"
+          onClick={toggleLocale}
+          aria-label={t("switchLang")}
+          className={`${buttonClass("header", "md")} px-3 md:hidden`}
+        >
+          <Languages size={15} aria-hidden />
+          {t("switchLangShort")}
+        </button>
+        <Menu
+          label={t("moreActions")}
+          className="md:hidden"
+          items={[
+            { label: t("reportsPage"), icon: ChartColumn, href: "/dashboard/reports" },
+            { label: t("residentLink"), icon: Smartphone, href: "/" },
+            { label: t("resetDemo"), icon: RotateCcw, onSelect: reset },
+          ]}
+        />
       </header>
 
       {alertCase && (
         <div
           role="alert"
-          className="flex flex-wrap items-center gap-3 bg-red-600 px-4 py-2.5 text-white shadow-lg shadow-red-600/30"
+          className="flex items-center gap-3 bg-red-600 px-4 py-2.5 text-white shadow-lg shadow-red-600/30"
         >
-          <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15">
             <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />
             <BellRing size={17} aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold">{t("criticalAlertTitle")}</div>
+            <div className="text-sm leading-tight font-bold">{t("criticalAlertTitle")}</div>
             <div className="truncate text-xs opacity-90">
               {pick(HAZARD_LABELS[alertCase.triage.hazard])} · <span dir="auto">{alertCase.description}</span>
             </div>
@@ -131,17 +165,17 @@ function DashboardShell() {
           <button
             type="button"
             onClick={() => {
-              setSelectedId(alertCase.id);
+              select(alertCase.id);
               dismissAlert();
             }}
-            className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-50"
+            className="h-10 shrink-0 rounded-lg bg-white px-3 text-xs font-bold text-red-700 transition hover:bg-red-50 md:h-8"
           >
             {t("viewCase")}
           </button>
           <button
             type="button"
             onClick={dismissAlert}
-            className="rounded-lg p-1.5 transition hover:bg-white/15"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/15 md:h-8 md:w-8"
             aria-label={t("dismiss")}
           >
             <X size={16} aria-hidden />
@@ -149,48 +183,46 @@ function DashboardShell() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1 dark:border-slate-800">
-          <Inbox size={15} className="text-slate-500" aria-hidden />
-          <span className="text-base font-bold tabular-nums">{formatNumber(state.cases.length)}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{t("totalReports")}</span>
-        </div>
+      {/* One swipeable row on phones, wrapping on wider screens. Critical first. */}
+      <div className="rpa-no-scrollbar flex items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2 sm:flex-wrap dark:border-slate-800 dark:bg-slate-900">
         {(["critical", "high", "medium", "low"] as const).map((s) => (
-          <div
+          <Stat
             key={s}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-1 ${
-              s === "critical" && bySeverity(s) > 0
-                ? "border-red-300 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10"
-                : "border-slate-200 dark:border-slate-800"
-            }`}
-          >
-            <SeverityDot severity={s} className="h-2.5 w-2.5" />
-            <span className="text-base font-bold tabular-nums">{formatNumber(bySeverity(s))}</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">{pick(SEVERITY_LABELS[s])}</span>
-          </div>
+            highlight={s === "critical" && bySeverity(s) > 0}
+            icon={<SeverityDot severity={s} className="h-2.5 w-2.5" />}
+            value={formatNumber(bySeverity(s))}
+            label={pick(SEVERITY_LABELS[s])}
+          />
         ))}
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1 dark:border-slate-800">
-          <Users size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden />
-          <span className="text-base font-bold tabular-nums">
-            {formatNumber(available)}
-            <span className="text-sm font-normal text-slate-400">/{formatNumber(state.teams.length)}</span>
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{t("teamsAvailable")}</span>
-        </div>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1 dark:border-slate-800">
-          <Users size={15} className="text-amber-600 dark:text-amber-400" aria-hidden />
-          <span className="text-base font-bold tabular-nums">{formatNumber(busy)}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">{t("teamsBusy")}</span>
-        </div>
+        <Stat
+          icon={<Inbox size={15} className="text-slate-500" aria-hidden />}
+          value={formatNumber(state.cases.length)}
+          label={t("totalReports")}
+        />
+        <Stat
+          icon={<Users size={15} className="text-emerald-600 dark:text-emerald-400" aria-hidden />}
+          value={
+            <>
+              {formatNumber(available)}
+              <span className="text-sm font-normal text-slate-400">/{formatNumber(state.teams.length)}</span>
+            </>
+          }
+          label={t("teamsAvailable")}
+        />
+        <Stat
+          icon={<Users size={15} className="text-amber-600 dark:text-amber-400" aria-hidden />}
+          value={formatNumber(busy)}
+          label={t("teamsBusy")}
+        />
         {activeScenarios.length > 0 && (
-          <div className="ms-auto flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-500">{t("activeScenario")}:</span>
+          <div className="flex shrink-0 items-center gap-1.5 sm:ms-auto sm:flex-wrap">
+            <span className="text-xs whitespace-nowrap text-slate-500">{t("activeScenario")}:</span>
             {activeScenarios.map((sc) => {
               const Icon = HAZARD_ICON[sc.hazard];
               return (
                 <span
                   key={sc.id}
-                  className="flex items-center gap-1.5 rounded-xl bg-red-600 px-2.5 py-1 text-xs font-semibold text-white"
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl bg-red-600 px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-white"
                 >
                   <Icon size={13} aria-hidden />
                   {pick(sc.name)}
@@ -211,32 +243,105 @@ function DashboardShell() {
         </p>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:grid lg:grid-cols-[360px_minmax(0,1fr)_420px] lg:overflow-hidden">
-        <aside className="order-2 border-slate-200 bg-slate-50 lg:order-1 lg:min-h-0 lg:border-e dark:border-slate-800 dark:bg-slate-950">
-          <CaseQueue cases={state.cases} selectedId={selected?.id ?? null} onSelect={setSelectedId} now={now} />
+      <div
+        className="flex gap-1 border-b border-slate-200 bg-white p-2 lg:hidden dark:border-slate-800 dark:bg-slate-900"
+        role="tablist"
+      >
+        {(
+          [
+            ["queue", List, t("viewQueue"), openCases.length],
+            ["map", MapIcon, t("viewMap"), null],
+          ] as const
+        ).map(([view, Icon, label, count]) => (
+          <button
+            key={view}
+            type="button"
+            role="tab"
+            aria-selected={mobileView === view}
+            onClick={() => setMobileView(view)}
+            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
+              mobileView === view
+                ? "bg-brand-navy text-white dark:bg-white dark:text-brand-navy"
+                : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Icon size={16} aria-hidden />
+            {label}
+            {count !== null && <span className="tabular-nums opacity-70">{formatNumber(count)}</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[360px_minmax(0,1fr)_420px]">
+        <aside
+          className={`${mobileView === "queue" ? "block" : "hidden"} min-h-0 flex-1 border-slate-200 bg-slate-50 lg:block lg:border-e dark:border-slate-800 dark:bg-slate-950`}
+        >
+          <CaseQueue cases={state.cases} selectedId={selected?.id ?? null} onSelect={select} now={now} />
         </aside>
 
-        <main className="relative order-1 h-[45dvh] shrink-0 lg:order-2 lg:h-auto">
-          <OpsMap state={state} plan={plan} selected={selected} onSelect={setSelectedId} />
+        <main className={`${mobileView === "map" ? "block" : "hidden"} relative min-h-0 flex-1 lg:block`}>
+          <OpsMap key={mapKey} state={state} plan={plan} selected={selected} onSelect={select} />
         </main>
 
-        <aside className="order-3 border-slate-200 bg-slate-50 lg:min-h-0 lg:overflow-y-auto lg:border-s dark:border-slate-800 dark:bg-slate-950">
-          {selected ? (
-            <CaseDetail
-              key={selected.id}
-              sosCase={selected}
-              cases={state.cases}
-              teams={state.teams}
-              suggestions={plan.get(selected.id)}
-              now={now}
-              onAction={(a) => act(selected.id, a)}
-              onSelect={setSelectedId}
-            />
-          ) : (
-            <p className="p-8 text-center text-sm text-slate-500">{t("selectCase")}</p>
-          )}
+        {/* Phones: a full-screen view over the queue/map with a back button. */}
+        <aside
+          className={`${detailOpen ? "fixed inset-0 z-[1200] flex" : "hidden"} flex-col bg-slate-50 lg:static lg:z-auto lg:flex lg:min-h-0 lg:border-s lg:border-slate-200 dark:bg-slate-950 dark:lg:border-slate-800`}
+        >
+          <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:hidden dark:border-slate-800 dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => setDetailOpen(false)}
+              className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <ArrowLeft size={18} className="rtl:-scale-x-100" aria-hidden />
+              {t("back")}
+            </button>
+            <span className="truncate text-sm text-slate-500">{t("reportDetails")}</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
+            {selected ? (
+              <CaseDetail
+                key={selected.id}
+                sosCase={selected}
+                cases={state.cases}
+                teams={state.teams}
+                suggestions={plan.get(selected.id)}
+                now={now}
+                onAction={(a) => act(selected.id, a)}
+                onSelect={select}
+              />
+            ) : (
+              <p className="p-8 text-center text-sm text-slate-500">{t("selectCase")}</p>
+            )}
+          </div>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function Stat({
+  icon,
+  value,
+  label,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  value: React.ReactNode;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1 ${
+        highlight
+          ? "border-red-300 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10"
+          : "border-slate-200 dark:border-slate-800"
+      }`}
+    >
+      {icon}
+      <span className="text-base font-bold tabular-nums">{value}</span>
+      <span className="text-xs whitespace-nowrap text-slate-500 dark:text-slate-400">{label}</span>
     </div>
   );
 }

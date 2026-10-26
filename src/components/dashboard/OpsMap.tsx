@@ -33,7 +33,8 @@ function FollowSelection({ selected }: { selected: SosCase | null }) {
   const map = useMap();
   const id = selected?.id;
   useEffect(() => {
-    if (selected) map.flyTo(selected.position, Math.max(map.getZoom(), 13), { duration: 0.8 });
+    // Hidden on phones while the queue is showing: nothing to animate.
+    if (selected && map.getSize().x > 0) map.flyTo(selected.position, Math.max(map.getZoom(), 13), { duration: 0.8 });
     // Only when the selection changes, not on every poll.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -169,7 +170,7 @@ export default function OpsMap({ state, plan, selected, onSelect }: Props) {
           type="button"
           onClick={() => setHeat((h) => !h)}
           aria-pressed={heat}
-          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shadow-lg transition ${
+          className={`flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold shadow-lg transition lg:h-8 ${
             heat
               ? "bg-red-600 text-white"
               : "bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-200"
