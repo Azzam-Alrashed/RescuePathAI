@@ -16,6 +16,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0e2238",
+  // Draw under the notch and home bar; headers and tab bars pad with env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

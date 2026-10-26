@@ -450,7 +450,7 @@ function DispatchCard({
                 <button
                   type="button"
                   onClick={() => onAction({ action: "release", teamId: team.id })}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-800"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-red-600 lg:h-8 lg:w-8 dark:hover:bg-slate-800"
                   aria-label={t("releaseTeam")}
                   title={t("releaseTeam")}
                 >

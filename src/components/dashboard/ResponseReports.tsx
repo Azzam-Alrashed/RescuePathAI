@@ -17,7 +17,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { HAZARD_ICON, TEAM_ICON } from "@/components/icons";
 import { SEVERITY_COLOR } from "@/components/severity";
-import { Button, buttonClass, Card, SectionTitle } from "@/components/ui";
+import { buttonClass, Card, SectionTitle } from "@/components/ui";
 import { totalAffected } from "@/lib/affected";
 import { effectiveSeverity, isOpen } from "@/lib/dispatch";
 import { HAZARD_LABELS, I18nProvider, SEVERITY_LABELS, TEAM_LABELS, useI18n } from "@/lib/i18n";
@@ -115,26 +115,45 @@ function ReportsShell() {
 
   return (
     <div className="min-h-dvh bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="flex flex-wrap items-center gap-3 bg-brand-navy px-4 py-2.5 text-white">
+      <header className="flex items-center gap-3 bg-brand-navy px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 text-white">
         <BrandMark />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg leading-tight font-bold">
-            {t("appName")} <span className="font-normal text-slate-400">/</span> {t("reportsPage")}
+            <span className="hidden sm:inline">
+              {t("appName")} <span className="font-normal text-slate-400">/</span>{" "}
+            </span>
+            {t("reportsPage")}
           </h1>
           <p className="truncate text-xs text-slate-300/80">{t("prototypeBadge")}</p>
         </div>
-        <Link href="/dashboard" className={buttonClass("header", "sm")}>
-          <ArrowLeft size={14} className="rtl:-scale-x-100" aria-hidden />
+        <Link
+          href="/dashboard"
+          aria-label={t("backToOps")}
+          className={`${buttonClass("header", "md")} md:h-8 md:px-3 md:text-xs`}
+        >
+          <ArrowLeft size={15} className="rtl:-scale-x-100" aria-hidden />
           <span className="hidden sm:inline">{t("backToOps")}</span>
         </Link>
-        <Button variant="header" size="sm" icon={Languages} onClick={() => setLocale(locale === "ar" ? "en" : "ar")}>
-          {t("switchLang")}
-        </Button>
+        <button
+          type="button"
+          onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
+          aria-label={t("switchLang")}
+          className={`${buttonClass("header", "md")} px-3 md:h-8 md:text-xs`}
+        >
+          <Languages size={15} aria-hidden />
+          <span className="sm:hidden">{t("switchLangShort")}</span>
+          <span className="hidden sm:inline">{t("switchLang")}</span>
+        </button>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-4 p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <Kpi icon={Inbox} label={t("totalReports")} value={formatNumber(cases.length)} />
+          <Kpi
+            icon={Inbox}
+            label={t("totalReports")}
+            value={formatNumber(cases.length)}
+            className="col-span-2 md:col-span-1"
+          />
           <Kpi
             icon={CircleCheck}
             label={t("kpiHandled")}
@@ -176,7 +195,7 @@ function ReportsShell() {
                 ) : null,
               )}
             </div>
-            <ul className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <ul className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
               {outcomes.map(({ o, n }) => (
                 <li key={o} className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: OUTCOME_COLOR[o] }} />
@@ -255,14 +274,16 @@ function Kpi({
   label,
   value,
   tone = "text-slate-500",
+  className = "",
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   tone?: string;
+  className?: string;
 }) {
   return (
-    <Card className="p-3">
+    <Card className={`p-3 ${className}`}>
       <Icon size={18} className={tone} aria-hidden />
       <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
       <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>

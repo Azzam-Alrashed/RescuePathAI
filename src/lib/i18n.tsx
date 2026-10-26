@@ -12,6 +12,7 @@ const UI = {
     en: "This is a demo prototype, not a real emergency service. In a real emergency call 911.",
   },
   switchLang: { ar: "English", en: "العربية" },
+  switchLangShort: { ar: "EN", en: "عربي" },
 
   tabAlert: { ar: "التنبيه", en: "Alert" },
   tabSos: { ar: "استغاثة", en: "SOS" },
@@ -333,6 +334,29 @@ const UI = {
   channel_photo: { ar: "صورة", en: "Photo" },
   channel_voice: { ar: "رسالة صوتية", en: "Voice" },
   channel_sos: { ar: "استغاثة فورية", en: "Instant SOS" },
+
+  // Mobile layout
+  disclaimerShort: {
+    ar: "نموذج تجريبي – للطوارئ الحقيقية اتصل بـ 911",
+    en: "Demo only – in a real emergency call 911",
+  },
+  showMore: { ar: "المزيد", en: "More" },
+  showLess: { ar: "أقل", en: "Less" },
+  close: { ar: "إغلاق", en: "Close" },
+  back: { ar: "رجوع", en: "Back" },
+  moreActions: { ar: "المزيد من الخيارات", en: "More actions" },
+  sheetHandle: { ar: "اسحب لتكبير اللوحة أو تصغيرها", en: "Drag to resize the panel" },
+  sosTabHint: { ar: "اضغط مطولًا للاستغاثة الفورية", en: "Hold for instant SOS" },
+  viewQueue: { ar: "البلاغات", en: "Reports" },
+  viewMap: { ar: "الخريطة", en: "Map" },
+  loadingMap: { ar: "جارٍ تحميل الخريطة…", en: "Loading map…" },
+  sentTitle: { ar: "تم إرسال بلاغك", en: "Your report was sent" },
+  sentBody: {
+    ar: "يراجع فريق الطوارئ بلاغك الآن. تابع حالته من «بلاغاتي».",
+    en: "The emergency team is reviewing it now. Follow its status in My reports.",
+  },
+  trackReport: { ar: "متابعة البلاغ", en: "Track my report" },
+  newReport: { ar: "بلاغ جديد", en: "New report" },
 } satisfies Record<string, Bilingual>;
 
 /** The three stages people see, over the five internal case statuses. */

@@ -1,79 +1,75 @@
 "use client";
 
 import { CircleCheck, Siren } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { affected } from "@/lib/affected";
 import { useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
+import { useHold } from "@/lib/use-hold";
 
-const HOLD_MS = 1500;
+export const HOLD_MS = 1500;
 
-/** One-tap (press-and-hold) SOS with the current location, for people who can't type or talk. */
-export function QuickSos({ onSent }: { onSent: () => void }) {
+/** Sends a one-tap SOS: the current location, reported as critical. */
+export function useInstantSos() {
   const { t } = useI18n();
   const { userPos, submitSos } = useAppState();
-  const [holding, setHolding] = useState(false);
+  return () =>
+    submitSos({
+      hazard: "unknown",
+      description: t("quickSosDescription"),
+      affected: affected({ adults: 1 }),
+      shareVulnerable: false,
+      position: userPos,
+      channel: "sos",
+    });
+}
+
+/** Progress ring drawn around a press-and-hold button (fills over HOLD_MS while held). */
+export function HoldRing({ track = "#fecaca", fill = "#dc2626" }: { track?: string; fill?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 -rotate-90" aria-hidden>
+      <circle cx="50" cy="50" r="46" fill="none" stroke={track} strokeWidth="6" />
+      <circle
+        cx="50"
+        cy="50"
+        r="46"
+        fill="none"
+        stroke={fill}
+        strokeWidth="6"
+        strokeLinecap="round"
+        className="rpa-hold-ring"
+      />
+    </svg>
+  );
+}
+
+/** Press-and-hold SOS with the current location, for people who can't type or talk. */
+export function QuickSos({ onSent }: { onSent: () => void }) {
+  const { t } = useI18n();
+  const sendInstantSos = useInstantSos();
   const [sent, setSent] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
-
-  function begin() {
-    if (timer.current || sent) return;
-    setHolding(true);
-    timer.current = setTimeout(() => {
-      timer.current = null;
-      setHolding(false);
+  const { holding, handlers } = useHold({
+    ms: HOLD_MS,
+    onComplete: () => {
+      if (sent) return;
       setSent(true);
-      submitSos({
-        hazard: "unknown",
-        description: t("quickSosDescription"),
-        affected: affected({ adults: 1 }),
-        shareVulnerable: false,
-        position: userPos,
-        channel: "sos",
-      });
-      navigator.vibrate?.(200);
+      sendInstantSos();
       setTimeout(onSent, 1200);
-    }, HOLD_MS);
-  }
-
-  function cancel() {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-    setHolding(false);
-  }
+    },
+  });
 
   return (
     <section className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 p-4 text-white shadow-lg shadow-red-600/25">
       <button
         type="button"
-        onPointerDown={begin}
-        onPointerUp={cancel}
-        onPointerLeave={cancel}
-        onPointerCancel={cancel}
-        onKeyDown={(e) => (e.key === " " || e.key === "Enter") && !e.repeat && (e.preventDefault(), begin())}
-        onKeyUp={cancel}
-        onContextMenu={(e) => e.preventDefault()}
+        {...handlers}
         aria-label={`${t("quickSosTitle")} – ${t("quickSosHold")}`}
         className={`relative flex h-24 w-24 shrink-0 touch-none items-center justify-center rounded-full bg-white text-red-600 shadow-xl transition select-none ${
           holding ? "rpa-holding scale-95" : ""
         }`}
         style={{ "--hold-ms": `${HOLD_MS}ms` } as React.CSSProperties}
       >
-        <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
-          <circle cx="50" cy="50" r="46" fill="none" stroke="#fecaca" strokeWidth="6" />
-          <circle
-            cx="50"
-            cy="50"
-            r="46"
-            fill="none"
-            stroke="#dc2626"
-            strokeWidth="6"
-            strokeLinecap="round"
-            className="rpa-hold-ring"
-          />
-        </svg>
+        <HoldRing />
         {sent ? (
           <CircleCheck size={40} aria-hidden />
         ) : (

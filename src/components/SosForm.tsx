@@ -2,17 +2,20 @@
 
 import {
   Camera,
+  CircleCheck,
+  ClipboardList,
   Hourglass,
   ImageUp,
   MapPin,
   Mic,
   PenLine,
+  Plus,
   Siren,
   Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { HAZARD_ICON, HAZARD_TONE } from "@/components/icons";
 import { AffectedCounter } from "@/components/report/AffectedCounter";
 import { PhotoInput, type PhotoState } from "@/components/report/PhotoInput";
@@ -47,6 +50,7 @@ export function SosForm({ onSent }: { onSent: () => void }) {
   const [shareVulnerable, setShareVulnerable] = useState(false);
   const [queuedNotice, setQueuedNotice] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const hasSensitive = SENSITIVE_GROUPS.some((g) => counts[g] > 0);
 
@@ -82,10 +86,12 @@ export function SosForm({ onSent }: { onSent: () => void }) {
     setPhoto(null);
     setApplied(false);
     if (offline) setQueuedNotice(true);
-    else onSent();
+    else setSent(true);
   }
 
   const isPhoto = method === "camera" || method === "upload";
+
+  if (sent) return <SentScreen onTrack={onSent} onNew={() => setSent(false)} />;
 
   return (
     <form onSubmit={submit} className="space-y-3">
@@ -216,16 +222,52 @@ export function SosForm({ onSent }: { onSent: () => void }) {
         </p>
       </div>
 
-      <Button
-        type="submit"
-        variant="danger"
-        size="lg"
-        icon={Siren}
-        className="w-full"
-        disabled={isPhoto && !!photo?.pending}
-      >
-        {t("sosSend")}
-      </Button>
+      {/* Stays in reach while scrolling the form on a phone. */}
+      <div className="sticky -bottom-3 z-10 -mx-3 bg-gradient-to-t from-slate-50 from-70% to-transparent px-3 pt-4 pb-3 dark:from-slate-950">
+        <Button
+          type="submit"
+          variant="danger"
+          size="lg"
+          icon={Siren}
+          className="w-full"
+          disabled={isPhoto && !!photo?.pending}
+        >
+          {t("sosSend")}
+        </Button>
+      </div>
     </form>
+  );
+}
+
+const SENT_REDIRECT_MS = 4000;
+
+/** Confirmation after sending, then on to "My reports" unless the resident starts another report. */
+function SentScreen({ onTrack, onNew }: { onTrack: () => void; onNew: () => void }) {
+  const { t } = useI18n();
+  const track = useEffectEvent(onTrack);
+
+  useEffect(() => {
+    const timer = setTimeout(track, SENT_REDIRECT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Card className="flex flex-col items-center py-10 text-center">
+      <span className="rpa-pop flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
+        <CircleCheck size={44} aria-hidden />
+      </span>
+      <h2 className="mt-4 text-xl font-bold" role="status">
+        {t("sentTitle")}
+      </h2>
+      <p className="mt-2 max-w-72 text-sm text-slate-600 dark:text-slate-300">{t("sentBody")}</p>
+      <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row">
+        <Button variant="primary" size="lg" icon={ClipboardList} onClick={onTrack} className="flex-1">
+          {t("trackReport")}
+        </Button>
+        <Button size="lg" icon={Plus} onClick={onNew} className="flex-1">
+          {t("newReport")}
+        </Button>
+      </div>
+    </Card>
   );
 }
