@@ -1,3 +1,5 @@
+import { totalAffected, vulnerableCount } from "@/lib/affected";
+import { planResources } from "@/lib/resources";
 import type { HazardType, ResponseTeam, Severity, SosInput, TriageResult } from "@/lib/types";
 
 // Keyword lists cover Arabic and English report text.
@@ -32,7 +34,23 @@ const KEYWORDS: Record<HazardType, string[]> = {
     "wadi",
   ],
   fire: ["حريق", "نار", "دخان", "اشتعال", "لهب", "fire", "smoke", "burning", "flames"],
-  road: ["حادث", "تصادم", "سيارة", "مركبة", "انقلاب", "accident", "crash", "collision", "car", "vehicle"],
+  collapse: [
+    "انهيار",
+    "انهار",
+    "سقط المبنى",
+    "سقوط مبنى",
+    "سقوط سقف",
+    "سقوط سور",
+    "سقوط جدار",
+    "تصدع",
+    "تشقق",
+    "ركام",
+    "collapse",
+    "collapsed",
+    "crack",
+    "roof fell",
+    "wall fell",
+  ],
   trapped: [
     "محاصر",
     "محاصرين",
@@ -77,14 +95,16 @@ const MINOR = ["مغلق", "إغلاق", "تجمع مياه", "بسيط", "close
 
 const includesAny = (text: string, words: string[]) => words.some((w) => text.includes(w));
 
-function detectHazard(text: string, declared: SosInput["hazard"]): HazardType {
+function detectHazard(text: string, input: SosInput): HazardType {
   // "Trapped" wins over the underlying hazard: it is what drives the rescue need.
-  if (includesAny(text, KEYWORDS.trapped)) return "trapped";
+  if (includesAny(text, KEYWORDS.trapped) || input.affected.trapped > 0) return "trapped";
   // The description wins over the resident's quick selection when they disagree.
-  for (const type of ["fire", "flood", "missile", "road"] as const) {
+  for (const type of ["fire", "collapse", "flood", "missile"] as const) {
     if (includesAny(text, KEYWORDS[type])) return type;
   }
-  return declared === "unknown" ? "trapped" : declared;
+  // Then what the photo shows.
+  if (input.photoAnalysis) return input.photoAnalysis.hazard;
+  return input.hazard === "unknown" ? "trapped" : input.hazard;
 }
 
 function pickTeam(hazard: HazardType, text: string, injured: boolean, minor: boolean): ResponseTeam {
@@ -92,32 +112,51 @@ function pickTeam(hazard: HazardType, text: string, injured: boolean, minor: boo
   // e.g. a road closed by pooled water: traffic control, not a rescue.
   if (minor) return "police";
   if (hazard === "flood" || (hazard === "trapped" && includesAny(text, KEYWORDS.flood))) return "water_rescue";
-  if (hazard === "road") return injured ? "ambulance" : "police";
+  // Collapses and strikes need civil defense first; ambulances join for injuries.
+  if (hazard === "collapse" || hazard === "missile") return "civil_defense";
   if (injured) return "ambulance";
   return "civil_defense";
 }
 
 export const SEVERITY_BASE: Record<Severity, number> = { low: 15, medium: 40, high: 65, critical: 85 };
 
+export const SEVERITY_RANK: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
+export const maxSeverity = (a: Severity, b: Severity): Severity => (SEVERITY_RANK[a] >= SEVERITY_RANK[b] ? a : b);
+
 /** Deterministic fallback triage used when the AI service is unavailable. */
 export function triageWithRules(input: SosInput): TriageResult {
   const text = input.description.toLowerCase();
-  const hazard = detectHazard(text, input.hazard);
+  const hazard = detectHazard(text, input);
   const lifeThreat = includesAny(text, LIFE_THREAT);
   const injured = lifeThreat || includesAny(text, INJURY);
-  const minor = includesAny(text, MINOR) && !injured && (hazard === "flood" || hazard === "road");
+  const minor = includesAny(text, MINOR) && !injured && hazard === "flood";
+  const people = Math.max(1, totalAffected(input.affected));
+  const vulnerable = vulnerableCount(input.affected);
+  // A one-tap SOS comes from someone who can't type or talk: assume the worst.
+  const quickSos = input.channel === "sos";
 
   let severity: Severity;
-  if (hazard === "trapped" || lifeThreat) severity = "critical";
-  else if (injured || hazard === "missile" || hazard === "fire") severity = "high";
+  if (hazard === "trapped" || lifeThreat || quickSos) severity = "critical";
+  else if (injured || hazard === "missile" || hazard === "fire" || hazard === "collapse") severity = "high";
   else if (minor) severity = "low";
   else severity = "medium";
+  if (input.photoAnalysis) severity = maxSeverity(severity, input.photoAnalysis.severity);
 
-  const vulnerable = input.shareVulnerable ? Object.values(input.vulnerable).filter(Boolean).length : 0;
-  const priority = Math.min(100, SEVERITY_BASE[severity] + Math.min(input.peopleCount - 1, 5) * 2 + vulnerable * 3);
+  const priority = Math.min(
+    100,
+    SEVERITY_BASE[severity] +
+      Math.min(people - 1, 5) * 2 +
+      Math.min(vulnerable, 4) * 3 +
+      Math.min(input.affected.trapped, 3) * 2,
+  );
 
   const reasons: { ar: string[]; en: string[] } = { ar: [], en: [] };
-  if (hazard === "trapped") {
+  if (quickSos) {
+    reasons.ar.push("استغاثة سريعة دون تفاصيل، تُعامل كحالة حرجة حتى التحقق");
+    reasons.en.push("one-tap SOS with no details, treated as critical until verified");
+  }
+  if (hazard === "trapped" && !quickSos) {
     reasons.ar.push("يوجد أشخاص محاصرون");
     reasons.en.push("people are reported trapped");
   }
@@ -128,9 +167,13 @@ export function triageWithRules(input: SosInput): TriageResult {
     reasons.ar.push("توجد إصابات");
     reasons.en.push("injuries are reported");
   }
-  if (input.peopleCount > 1) {
-    reasons.ar.push(`عدد المتأثرين ${input.peopleCount}`);
-    reasons.en.push(`${input.peopleCount} people affected`);
+  if (input.photoAnalysis) {
+    reasons.ar.push("تحليل الصورة يدعم التصنيف");
+    reasons.en.push("the photo analysis supports this rating");
+  }
+  if (people > 1) {
+    reasons.ar.push(`عدد المتضررين ${people}`);
+    reasons.en.push(`${people} people affected`);
   }
   if (vulnerable > 0) {
     reasons.ar.push("وجود فئات تحتاج دعمًا إضافيًا");
@@ -145,11 +188,13 @@ export function triageWithRules(input: SosInput): TriageResult {
     reasons.en.push("initial assessment based on hazard type");
   }
 
+  const resources = planResources(hazard, severity, input.affected, injured, pickTeam(hazard, text, injured, minor));
   return {
     hazard,
     severity,
     priority,
-    team: pickTeam(hazard, text, injured, minor),
+    teams: resources.teams.map((t) => t.type),
+    resources,
     reasoning: {
       ar: reasons.ar.join("، ") + ".",
       en: reasons.en.join(", ").replace(/^./, (c) => c.toUpperCase()) + ".",

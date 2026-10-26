@@ -160,7 +160,55 @@ html .leaflet-container {
     0 1px 4px rgb(0 0 0 / 0.4);
 }
 
+/* Photo analysis: a scan line sweeping over the image. */
+.rpa-scan {
+  top: 0;
+  animation: rpa-scan 1.6s ease-in-out infinite alternate;
+}
+@keyframes rpa-scan {
+  to {
+    top: 100%;
+  }
+}
+
+/* Voice recording level bars. */
+.rpa-wave {
+  height: 30%;
+  animation: rpa-wave 0.7s ease-in-out infinite alternate;
+}
+@keyframes rpa-wave {
+  to {
+    height: 100%;
+  }
+}
+
+/* Press-and-hold SOS progress ring. */
+.rpa-hold-ring {
+  stroke-dasharray: 289;
+  stroke-dashoffset: 289;
+}
+.rpa-holding .rpa-hold-ring {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--hold-ms, 1500ms) linear;
+}
+
+/* Warning markers on closed roads. */
+.rpa-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #dc2626;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .rpa-scan,
+  .rpa-wave,
   .rpa-pin--pulse,
   .animate-pulse,
   .animate-ping {

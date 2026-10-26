@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { shareableAffected } from "@/lib/affected";
 import { createPersistentStore, useBrowserOnline } from "@/lib/browser-store";
 import { SCENARIOS } from "@/lib/data/scenarios";
 import { isInZone } from "@/lib/geo";
@@ -10,9 +11,13 @@ import type { LatLng, ResponseUpdate, Scenario, SosInput, SosReport, TriageResul
 export const DEFAULT_POSITION: LatLng = [24.705, 46.675];
 
 interface AppState {
+  /** Every active scenario, in the order they started. */
+  scenarios: Scenario[];
+  /** The scenario that matters most to the resident: the one they are in, else the latest. */
   scenario: Scenario | null;
-  startScenario: (id: string) => void;
-  stopScenario: () => void;
+  toggleScenario: (id: string) => void;
+  startAllScenarios: () => void;
+  stopAllScenarios: () => void;
 
   userPos: LatLng;
   setUserPos: (p: LatLng) => void;
@@ -36,7 +41,7 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null);
 
 // A report left "sending" by a closed tab never got a reply: queue it again.
-const reportsStore = createPersistentStore<SosReport[]>("rpa.reports", [], (raw) =>
+const reportsStore = createPersistentStore<SosReport[]>("rpa.reports.v2", [], (raw) =>
   (JSON.parse(raw) as SosReport[]).map((r) => (r.status === "sending" ? { ...r, status: "queued" } : r)),
 );
 const inFlight = new Set<string>();
@@ -54,11 +59,13 @@ async function sendReport(report: SosReport) {
       id: report.id,
       hazard: report.hazard,
       description: report.description,
-      peopleCount: report.peopleCount,
       // Vulnerability details only leave the device with consent.
-      vulnerable: report.shareVulnerable ? report.vulnerable : { children: false, elderly: false, disabled: false },
+      affected: shareableAffected(report.affected, report.shareVulnerable),
       shareVulnerable: report.shareVulnerable,
       position: report.position,
+      channel: report.channel,
+      photo: report.photo,
+      photoAnalysis: report.photoAnalysis,
     };
     const res = await fetch("/api/reports", {
       method: "POST",
@@ -101,18 +108,18 @@ async function refreshResponses() {
   } catch {}
 }
 
-/** Shares the simulated city-wide scenario with the operations dashboard. */
-function shareScenario(id: string | null) {
+/** Shares the simulated city-wide scenarios with the operations dashboard. */
+function shareScenarios(ids: string[]) {
   fetch("/api/ops/scenario", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ ids }),
   }).catch(() => {});
 }
 const clearReports = () => reportsStore.set([]);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [scenarioIds, setScenarioIds] = useState<string[]>([]);
   const [userPos, setUserPos] = useState<LatLng>(DEFAULT_POSITION);
   const [simulatedOffline, setSimulatedOffline] = useState(false);
   const browserOnline = useBrowserOnline();
@@ -133,23 +140,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [offline]);
 
-  const startScenario = useCallback((id: string) => {
-    setScenario(SCENARIOS.find((s) => s.id === id) ?? null);
-    setFocusKey((k) => k + 1);
-    shareScenario(id);
+  const updateScenarios = useCallback((next: string[]) => {
+    setScenarioIds(next);
+    shareScenarios(next);
+    if (next.length > 0) setFocusKey((k) => k + 1);
   }, []);
+
+  const scenarios = useMemo(() => scenarioIds.flatMap((id) => SCENARIOS.filter((s) => s.id === id)), [scenarioIds]);
+  const zoneScenario = scenarios.find((s) => isInZone(userPos, s.zone)) ?? null;
+  const scenario = zoneScenario ?? scenarios.at(-1) ?? null;
 
   const value = useMemo<AppState>(
     () => ({
+      scenarios,
       scenario,
-      startScenario,
-      stopScenario: () => {
-        setScenario(null);
-        shareScenario(null);
-      },
+      toggleScenario: (id: string) =>
+        updateScenarios(scenarioIds.includes(id) ? scenarioIds.filter((s) => s !== id) : [...scenarioIds, id]),
+      startAllScenarios: () => updateScenarios(SCENARIOS.map((s) => s.id)),
+      stopAllScenarios: () => updateScenarios([]),
       userPos,
       setUserPos,
-      inZone: scenario ? isInZone(userPos, scenario.zone) : false,
+      inZone: !!zoneScenario,
       offline,
       simulatedOffline,
       setSimulatedOffline,
@@ -160,7 +171,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       focusKey,
       requestFocus: () => setFocusKey((k) => k + 1),
     }),
-    [scenario, startScenario, userPos, offline, simulatedOffline, reports, focusKey],
+    [
+      scenarios,
+      scenario,
+      zoneScenario,
+      scenarioIds,
+      updateScenarios,
+      userPos,
+      offline,
+      simulatedOffline,
+      reports,
+      focusKey,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

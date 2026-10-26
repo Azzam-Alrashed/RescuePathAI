@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect } from "react";
 import { createPersistentStore } from "@/lib/browser-store";
-import type { Bilingual, HazardType, Locale, ResponseTeam, Severity, SosStatus } from "@/lib/types";
+import type { Bilingual, CaseStatus, HazardType, Locale, ResponseTeam, Severity, SosStatus } from "@/lib/types";
 
 const UI = {
   appName: { ar: "مسار الإنقاذ الذكي", en: "RescuePath AI" },
@@ -68,13 +68,8 @@ const UI = {
     ar: "مثال: نحن ثلاثة أشخاص محاصرون في الطابق الثاني والمياه ترتفع",
     en: "e.g. Three of us are trapped on the second floor and the water is rising",
   },
-  sosPeople: { ar: "عدد الأشخاص", en: "Number of people" },
   decrease: { ar: "إنقاص", en: "Decrease" },
   increase: { ar: "زيادة", en: "Increase" },
-  sosVulnerable: { ar: "يوجد من يحتاج دعمًا إضافيًا", en: "Someone needs extra support" },
-  children: { ar: "أطفال", en: "Children" },
-  elderly: { ar: "كبار سن", en: "Older adults" },
-  disabled: { ar: "ذوو إعاقة", en: "People with disabilities" },
   sosConsent: {
     ar: "أوافق على مشاركة هذه المعلومات مع فرق الاستجابة لترتيب الأولوية",
     en: "I agree to share this with responders to help prioritise",
@@ -98,7 +93,6 @@ const UI = {
   status_failed: { ar: "فشل الإرسال", en: "Failed to send" },
   aiAssessment: { ar: "التقييم المبدئي", en: "Initial assessment" },
   priority: { ar: "الأولوية", en: "Priority" },
-  suggestedTeam: { ar: "الفريق المقترح", en: "Suggested team" },
   sourceAi: { ar: "ذكاء اصطناعي", en: "AI" },
   sourceRules: { ar: "قواعد تلقائية", en: "Rule-based" },
   humanReview: {
@@ -109,7 +103,6 @@ const UI = {
   clearReports: { ar: "مسح البلاغات", en: "Clear reports" },
 
   simTitle: { ar: "لوحة المحاكاة", en: "Simulation panel" },
-  simStart: { ar: "تشغيل", en: "Start" },
   simStop: { ar: "إنهاء السيناريو", en: "End scenario" },
   simOffline: { ar: "محاكاة انقطاع الإنترنت", en: "Simulate no internet" },
   simLocation: { ar: "موقعي التجريبي", en: "My demo location" },
@@ -141,9 +134,6 @@ const UI = {
   opsLink: { ar: "لوحة العمليات", en: "Operations dashboard" },
   residentLink: { ar: "تطبيق السكان", en: "Resident app" },
   queue: { ar: "قائمة البلاغات", en: "Report queue" },
-  filterOpen: { ar: "مفتوحة", en: "Open" },
-  filterClosed: { ar: "مغلقة", en: "Closed" },
-  openCases: { ar: "بلاغات مفتوحة", en: "Open reports" },
   teamsAvailable: { ar: "فرق متاحة", en: "Teams available" },
   resetDemo: { ar: "إعادة ضبط العرض", en: "Reset demo" },
   live: { ar: "مباشر", en: "Live" },
@@ -161,12 +151,10 @@ const UI = {
   team_dispatched: { ar: "في مهمة", en: "Dispatched" },
   team_on_scene: { ar: "في الموقع", en: "On scene" },
   reportDetails: { ar: "تفاصيل البلاغ", en: "Report details" },
-  people: { ar: "الأشخاص", en: "People" },
   received: { ar: "وقت الاستلام", en: "Received" },
   origin: { ar: "المصدر", en: "Source" },
   origin_resident: { ar: "بلاغ من السكان", en: "From a resident" },
   origin_demo: { ar: "بلاغ تجريبي", en: "Demo report" },
-  extraSupport: { ar: "يحتاجون دعمًا إضافيًا", en: "Need extra support" },
   humanReviewTitle: { ar: "المراجعة البشرية", en: "Human review" },
   reviewHint: {
     ar: "اعتمد تقييم الذكاء الاصطناعي أو صحّح درجة الخطورة.",
@@ -176,7 +164,6 @@ const UI = {
   changedFrom: { ar: "عُدّلت من", en: "Changed from" },
   dispatchTitle: { ar: "التوزيع الذكي للفرق", en: "AI dispatch" },
   approveDispatch: { ar: "اعتماد وإرسال الفريق", en: "Approve & dispatch" },
-  otherTeam: { ar: "أو اختر فريقًا آخر", en: "Or choose another team" },
   noTeamAvailable: { ar: "لا يوجد فريق مناسب متاح حاليًا", en: "No suitable team is available right now" },
   dispatchReason: {
     ar: "أقرب فريق متاح من النوع المطلوب، مع حجز الفرق للبلاغات الأخطر أولًا.",
@@ -186,7 +173,6 @@ const UI = {
     ar: "لا يتوفر فريق من النوع المطلوب؛ هذا أقرب فريق بديل قادر على الاستجابة.",
     en: "No team of the needed type is free; this is the nearest substitute that can respond.",
   },
-  assignedTeam: { ar: "الفريق المكلّف", en: "Assigned team" },
   markOnScene: { ar: "وصل الفريق", en: "Team arrived" },
   resolveCase: { ar: "إغلاق البلاغ", en: "Close case" },
   dispatchDisclaimer: {
@@ -194,13 +180,175 @@ const UI = {
     en: "AI suggestions support the decision; the dispatcher makes the final call.",
   },
   teams: { ar: "الفرق", en: "Teams" },
+
+  // Affected people
+  affectedTitle: { ar: "فئات المتضررين", en: "People affected" },
+  affectedTotal: { ar: "إجمالي المتضررين", en: "Total affected" },
+  affectedHint: {
+    ar: "حدد عدد كل فئة. العالقون هم من لا يستطيعون الخروج بأنفسهم.",
+    en: "Count each group. Trapped means people who can't get out on their own.",
+  },
+  group_adults: { ar: "بالغون", en: "Adults" },
+  group_children: { ar: "أطفال", en: "Children" },
+  group_elderly: { ar: "كبار السن", en: "Older adults" },
+  group_disabled: { ar: "ذوو الإعاقة", en: "People with disabilities" },
+  group_pregnant: { ar: "حوامل", en: "Pregnant women" },
+  group_trapped: { ar: "عالقون", en: "Trapped" },
+
+  // Reporting methods
+  methodTitle: { ar: "كيف تريد وصف الحالة؟", en: "How do you want to describe it?" },
+  method_camera: { ar: "الكاميرا", en: "Camera" },
+  method_upload: { ar: "رفع صورة", en: "Upload photo" },
+  method_voice: { ar: "رسالة صوتية", en: "Voice note" },
+  method_text: { ar: "كتابة", en: "Write" },
+  photoTake: { ar: "التقط صورة للحادث", en: "Take a photo of the incident" },
+  photoChoose: { ar: "اختر صورة من جهازك", en: "Choose a photo from your device" },
+  photoHint: {
+    ar: "سيحلل الذكاء الاصطناعي الصورة ويحدد نوع الخطر ومستواه والفرق المناسبة.",
+    en: "AI will analyse the photo to identify the hazard, its severity and the right teams.",
+  },
+  photoAnalyzing: { ar: "جارٍ تحليل الصورة…", en: "Analysing the photo…" },
+  photoAnalyzingSteps: {
+    ar: "تحديد نوع الخطر · تقدير الخطورة · اقتراح الفرق",
+    en: "Identifying hazard · Estimating severity · Suggesting teams",
+  },
+  photoError: { ar: "تعذّر قراءة الصورة. جرّب صورة أخرى.", en: "Couldn't read that image. Try another photo." },
+  photoRemove: { ar: "إزالة الصورة", en: "Remove photo" },
+  photoAnalysisTitle: { ar: "تحليل الصورة", en: "Photo analysis" },
+  photoAttached: { ar: "صورة الحادث", en: "Incident photo" },
+  confidence: { ar: "درجة الثقة", en: "Confidence" },
+  sourceSimulated: { ar: "تحليل تجريبي", en: "Simulated analysis" },
+  analysisApplied: {
+    ar: "طُبّق التحليل على البلاغ. يمكنك تعديل التفاصيل قبل الإرسال.",
+    en: "Analysis applied to the report. You can edit the details before sending.",
+  },
+  voiceStart: { ar: "اضغط للتسجيل", en: "Tap to record" },
+  voiceStop: { ar: "إيقاف التسجيل", en: "Stop recording" },
+  voiceRecording: { ar: "جارٍ التسجيل…", en: "Recording…" },
+  voiceTranscribing: { ar: "جارٍ تحويل الصوت إلى نص…", en: "Transcribing…" },
+  voiceTranscript: { ar: "النص المستخرج", en: "Transcript" },
+  voiceSimNote: {
+    ar: "تحويل الصوت إلى نص هنا محاكاة. راجع النص وعدّله قبل الإرسال.",
+    en: "Speech-to-text is simulated here. Check and edit the text before sending.",
+  },
+  voiceMicError: {
+    ar: "تعذّر الوصول إلى الميكروفون؛ سنعرض نصًا تجريبيًا.",
+    en: "Microphone unavailable; showing a sample transcript.",
+  },
+  voiceRetake: { ar: "تسجيل جديد", en: "Record again" },
+
+  // One-tap SOS
+  quickSosTitle: { ar: "استغاثة فورية", en: "Instant SOS" },
+  quickSosHold: { ar: "اضغط مطولًا للإرسال", en: "Press and hold to send" },
+  quickSosHint: {
+    ar: "لمن لا يستطيع الكتابة أو التحدث: يُرسل موقعك فورًا كحالة حرجة.",
+    en: "If you can't type or talk: sends your location right away as critical.",
+  },
+  quickSosSent: { ar: "أُرسلت الاستغاثة مع موقعك", en: "SOS sent with your location" },
+  quickSosDescription: { ar: "استغاثة فورية بضغطة واحدة", en: "One-tap instant SOS" },
+  orDescribe: { ar: "أو صف الحالة بالتفصيل", en: "Or describe the situation" },
+
+  // Resources and multi-team dispatch
+  requiredResources: { ar: "الموارد المطلوبة", en: "Required resources" },
+  equipment: { ar: "المعدات", en: "Equipment" },
+  suggestedTeams: { ar: "الفرق المقترحة", en: "Suggested teams" },
+  assignAllSuggested: { ar: "اعتماد وإرسال جميع الفرق المقترحة", en: "Approve & dispatch all suggested" },
+  assignedTeams: { ar: "الفرق المكلّفة", en: "Assigned teams" },
+  releaseTeam: { ar: "إعادة الفريق", en: "Release team" },
+  addTeam: { ar: "إضافة فريق آخر", en: "Add another team" },
+  allTeamsAssigned: { ar: "تم تكليف كل الفرق المطلوبة", en: "All required teams are assigned" },
+
+  // Critical alert
+  criticalAlertTitle: { ar: "بلاغ حرج جديد يحتاج تدخلًا عاجلًا", en: "New critical report needs urgent action" },
+  viewCase: { ar: "عرض البلاغ", en: "View report" },
+  dismiss: { ar: "إغلاق", en: "Dismiss" },
+
+  // Summary
+  summaryTitle: { ar: "ملخص البلاغ", en: "Report summary" },
+  copy: { ar: "نسخ", en: "Copy" },
+  copied: { ar: "تم النسخ", en: "Copied" },
+
+  // Status stages shown to people
+  stage_new: { ar: "جديد", en: "New" },
+  stage_responding: { ar: "جارٍ الاستجابة", en: "Responding" },
+  stage_rescued: { ar: "تم الإنقاذ", en: "Rescued" },
+  outcome_rescued: { ar: "تم الإنقاذ", en: "Rescued" },
+  outcome_transferred: { ar: "نُقل للمستشفى", en: "Taken to hospital" },
+  outcome_false_alarm: { ar: "بلاغ غير دقيق", en: "False alarm" },
+  outcome_merged: { ar: "دُمج مع بلاغ آخر", en: "Merged" },
+  chooseOutcome: { ar: "نتيجة العملية", en: "Outcome" },
+
+  // Duplicates
+  possibleDuplicate: { ar: "بلاغ مكرر محتمل", en: "Possible duplicate" },
+  duplicateHint: {
+    ar: "بلاغ مشابه من الموقع نفسه وبنوع الخطر نفسه خلال آخر ٣٠ دقيقة.",
+    en: "A similar report of the same hazard from the same spot in the last 30 minutes.",
+  },
+  mergeInto: { ar: "دمج مع البلاغ الأصلي", en: "Merge into original" },
+  notDuplicate: { ar: "ليس مكررًا", en: "Not a duplicate" },
+  openOriginal: { ar: "فتح البلاغ الأصلي", en: "Open original" },
+
+  // Reassessment
+  reassessTitle: { ar: "تحديث الوضع وإعادة التقييم", en: "Update situation & reassess" },
+  reassessNote: { ar: "ما الذي تغيّر؟ (اختياري)", en: "What changed? (optional)" },
+  reassessApply: { ar: "إعادة التقييم", en: "Reassess" },
+  historyTitle: { ar: "سجل التقييم", en: "Assessment history" },
+
+  // Map
+  dangerZone: { ar: "منطقة خطرة", en: "Danger zone" },
+  closedRoadWarning: { ar: "طريق مغلق – خطر", en: "Closed road – danger" },
+  alternativeRoute: { ar: "مسار بديل يتجنب المناطق الخطرة", en: "Alternative route avoiding danger zones" },
+  directRouteBlocked: { ar: "المسار المباشر يمر بمنطقة خطرة", en: "The direct route crosses a danger zone" },
+  heatmap: { ar: "الخريطة الحرارية", en: "Heat map" },
+  heatLow: { ar: "منخفض", en: "Low" },
+  heatHigh: { ar: "مرتفع", en: "High" },
+
+  // Simulation
+  simRunAll: { ar: "تشغيل كل السيناريوهات معًا", en: "Run all scenarios at once" },
+  simStopAll: { ar: "إنهاء كل السيناريوهات", en: "End all scenarios" },
+
+  // Dashboard stats and reports
+  teamsBusy: { ar: "فرق مشغولة", en: "Teams busy" },
+  totalReports: { ar: "إجمالي البلاغات", en: "Total reports" },
+  reportsPage: { ar: "تقارير الاستجابة", en: "Response reports" },
+  backToOps: { ar: "العودة للوحة العمليات", en: "Back to operations" },
+  kpiHandled: { ar: "بلاغات تمت معالجتها", en: "Reports handled" },
+  kpiOpen: { ar: "بلاغات مفتوحة", en: "Open reports" },
+  kpiCritical: { ar: "حالات حرجة", en: "Critical cases" },
+  kpiPeople: { ar: "متضررون تم إنقاذهم", en: "People rescued" },
+  avgDispatch: { ar: "متوسط زمن الإسناد", en: "Avg. time to dispatch" },
+  avgArrival: { ar: "متوسط زمن الوصول", en: "Avg. time to arrive" },
+  avgResolve: { ar: "متوسط زمن الإغلاق", en: "Avg. time to close" },
+  responseTimes: { ar: "أوقات الاستجابة", en: "Response times" },
+  outcomesTitle: { ar: "نتائج العمليات", en: "Outcomes" },
+  byHazard: { ar: "البلاغات حسب نوع الخطر", en: "Reports by hazard" },
+  bySeverity: { ar: "البلاغات المفتوحة حسب الخطورة", en: "Open reports by severity" },
+  teamUtilisation: { ar: "استخدام الفرق", en: "Team utilisation" },
+  reportsNote: {
+    ar: "الأرقام محسوبة من بيانات المحاكاة الحالية وتتحدث مباشرة.",
+    en: "Figures come from the current simulation data and update live.",
+  },
+  channel: { ar: "طريقة الإبلاغ", en: "Reported via" },
+  channel_text: { ar: "وصف مكتوب", en: "Written" },
+  channel_photo: { ar: "صورة", en: "Photo" },
+  channel_voice: { ar: "رسالة صوتية", en: "Voice" },
+  channel_sos: { ar: "استغاثة فورية", en: "Instant SOS" },
 } satisfies Record<string, Bilingual>;
+
+/** The three stages people see, over the five internal case statuses. */
+export type CaseStage = "new" | "responding" | "rescued";
+
+export function caseStage(status: CaseStatus): CaseStage {
+  if (status === "new" || status === "reviewed") return "new";
+  if (status === "assigned" || status === "on_scene") return "responding";
+  return "rescued";
+}
 
 export const HAZARD_LABELS: Record<HazardType, Bilingual> = {
   missile: { ar: "تهديد صاروخي", en: "Missile threat" },
   flood: { ar: "سيول وفيضانات", en: "Flood" },
   fire: { ar: "حريق", en: "Fire" },
-  road: { ar: "حادث طريق", en: "Road accident" },
+  collapse: { ar: "انهيار مبنى", en: "Building collapse" },
   trapped: { ar: "أشخاص محاصرون", en: "People trapped" },
 };
 

@@ -33,7 +33,6 @@ export function effectivePriority(c: SosCase): number {
 }
 
 export const isOpen = (c: SosCase) => c.status !== "resolved";
-export const needsTeam = (c: SosCase) => c.status === "new" || c.status === "reviewed";
 
 /** Highest priority first; ties go to whoever has waited longest. */
 export function byPriority(a: SosCase, b: SosCase): number {
@@ -42,36 +41,73 @@ export function byPriority(a: SosCase, b: SosCase): number {
 
 export interface TeamOption {
   team: Team;
+  /** The team type in the case's resource plan this team covers. */
+  forType: ResponseTeam;
   distanceM: number;
   etaS: number;
   /** The team isn't the requested type but can respond. */
   substitute: boolean;
 }
 
-/** Available teams that can respond to a case, best first. */
-export function teamOptions(c: SosCase, teams: Team[], exclude: Set<string> = new Set()): TeamOption[] {
-  const wanted = c.triage.team;
+/**
+ * Team types (with counts) the case still needs. An assigned team covers its
+ * own type first, then a type it can stand in for.
+ */
+export function missingTeams(c: SosCase, teams: Team[]): ResponseTeam[] {
+  const need = new Map(c.triage.resources.teams.map((t) => [t.type, t.count]));
+  const assigned = c.teamIds.map((id) => teams.find((t) => t.id === id)).filter((t): t is Team => !!t);
+  for (const team of assigned) {
+    const covers =
+      (need.get(team.type) ?? 0) > 0
+        ? team.type
+        : [...need.keys()].find((type) => (need.get(type) ?? 0) > 0 && SUBSTITUTES[type].includes(team.type));
+    if (covers) need.set(covers, (need.get(covers) ?? 0) - 1);
+  }
+  return [...need].flatMap(([type, n]) => Array.from({ length: Math.max(0, n) }, () => type));
+}
+
+export const needsTeam = (c: SosCase, teams: Team[]) => isOpen(c) && missingTeams(c, teams).length > 0;
+
+/** Available teams that can cover one team type for a case, best first. */
+export function teamOptions(
+  c: SosCase,
+  teams: Team[],
+  wanted: ResponseTeam,
+  exclude: Set<string> = new Set(),
+): TeamOption[] {
   return teams
     .filter((t) => t.status === "available" && !exclude.has(t.id))
     .filter((t) => t.type === wanted || SUBSTITUTES[wanted].includes(t.type))
-    .map((t) => ({ team: t, ...estimateTravel(t.base, c.position), substitute: t.type !== wanted }))
+    .map((t) => ({ team: t, forType: wanted, ...estimateTravel(t.base, c.position), substitute: t.type !== wanted }))
     .sort((a, b) => Number(a.substitute) - Number(b.substitute) || a.etaS - b.etaS);
 }
 
+/** Every available team, nearest first, for a manual pick. */
+export function anyTeamOptions(c: SosCase, teams: Team[]): TeamOption[] {
+  return teams
+    .filter((t) => t.status === "available")
+    .map((t) => ({ team: t, forType: t.type, ...estimateTravel(t.base, c.position), substitute: false }))
+    .sort((a, b) => a.etaS - b.etaS);
+}
+
 /**
- * Suggested assignments for every case still waiting for a team. Cases are
- * served in priority order, so a lower-priority case never takes the team a
+ * Suggested assignments for every open case still missing teams. Cases are
+ * served in priority order, so a lower-priority case never takes a team a
  * more urgent one needs. A dispatcher approves each suggestion.
  */
-export function planDispatch(cases: SosCase[], teams: Team[]): Map<string, TeamOption> {
-  const plan = new Map<string, TeamOption>();
+export function planDispatch(cases: SosCase[], teams: Team[]): Map<string, TeamOption[]> {
+  const plan = new Map<string, TeamOption[]>();
   const reserved = new Set<string>();
-  for (const c of cases.filter(needsTeam).sort(byPriority)) {
-    const best = teamOptions(c, teams, reserved)[0];
-    if (best) {
-      plan.set(c.id, best);
-      reserved.add(best.team.id);
+  for (const c of cases.filter(isOpen).sort(byPriority)) {
+    const picks: TeamOption[] = [];
+    for (const type of missingTeams(c, teams)) {
+      const best = teamOptions(c, teams, type, reserved)[0];
+      if (best) {
+        picks.push(best);
+        reserved.add(best.team.id);
+      }
     }
+    if (picks.length > 0) plan.set(c.id, picks);
   }
   return plan;
 }

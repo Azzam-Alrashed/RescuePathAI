@@ -1,15 +1,23 @@
 import { z } from "zod";
 import { addCase, findCase, getResponseUpdates } from "@/lib/server/ops-store";
+import { AffectedSchema, ImageAnalysisSchema } from "@/lib/server/schemas";
 import { HAZARDS, triageReport } from "@/lib/triage";
 
 const ReportSchema = z.object({
   id: z.string().uuid(),
   hazard: z.enum([...HAZARDS, "unknown"]),
   description: z.string().max(2000),
-  peopleCount: z.number().int().min(1).max(500),
-  vulnerable: z.object({ children: z.boolean(), elderly: z.boolean(), disabled: z.boolean() }),
+  affected: AffectedSchema,
   shareVulnerable: z.boolean(),
   position: z.tuple([z.number().min(-90).max(90), z.number().min(-180).max(180)]),
+  channel: z.enum(["text", "photo", "voice", "sos"]),
+  // Downscaled in the browser; ~1024px JPEG.
+  photo: z
+    .string()
+    .max(1_500_000)
+    .regex(/^data:image\/jpeg;base64,/)
+    .optional(),
+  photoAnalysis: ImageAnalysisSchema.optional(),
 });
 
 /** A resident submits an SOS: triage it and open a case for the operations centre. */

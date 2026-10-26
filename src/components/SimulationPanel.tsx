@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, LocateFixed, MapPin, SlidersHorizontal, Square, WifiOff } from "lucide-react";
+import { ChevronDown, Layers, LocateFixed, MapPin, SlidersHorizontal, Square, WifiOff } from "lucide-react";
 import { useState } from "react";
 import { HazardTile } from "@/components/icons";
 import { Button } from "@/components/ui";
@@ -13,8 +13,10 @@ export function SimulationPanel() {
   const { t, pick } = useI18n();
   const {
     scenario,
-    startScenario,
-    stopScenario,
+    scenarios,
+    toggleScenario,
+    startAllScenarios,
+    stopAllScenarios,
     simulatedOffline,
     setSimulatedOffline,
     setUserPos,
@@ -50,12 +52,12 @@ export function SimulationPanel() {
       >
         <div className="space-y-1.5">
           {SCENARIOS.map((s) => {
-            const active = scenario?.id === s.id;
+            const active = scenarios.some((a) => a.id === s.id);
             return (
               <button
                 type="button"
                 key={s.id}
-                onClick={() => (active ? stopScenario() : startScenario(s.id))}
+                onClick={() => toggleScenario(s.id)}
                 aria-pressed={active}
                 className={`flex w-full items-center gap-2.5 rounded-xl border p-2 text-start transition ${
                   active
@@ -78,6 +80,15 @@ export function SimulationPanel() {
               </button>
             );
           })}
+          <Button
+            size="sm"
+            variant={scenarios.length === SCENARIOS.length ? "outline" : "danger"}
+            icon={scenarios.length === SCENARIOS.length ? Square : Layers}
+            onClick={scenarios.length === SCENARIOS.length ? stopAllScenarios : startAllScenarios}
+            className="mt-1 w-full"
+          >
+            {scenarios.length === SCENARIOS.length ? t("simStopAll") : t("simRunAll")}
+          </Button>
         </div>
 
         <div className="space-y-2 px-1">

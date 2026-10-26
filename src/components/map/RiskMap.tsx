@@ -3,15 +3,14 @@
 import L from "leaflet";
 import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, Polyline, Popup, Tooltip, useMap } from "react-leaflet";
-import { Ban } from "lucide-react";
 import {
   BaseTiles,
+  DangerLayer,
   HAZARD_COLOR,
   HAZARD_NODE,
   PLACE_NODE,
   pinIcon,
   RIYADH_CENTER,
-  ZoneShape,
 } from "@/components/map/shared";
 import { SAFE_PLACES } from "@/lib/data/safe-places";
 import { useI18n } from "@/lib/i18n";
@@ -47,7 +46,7 @@ function FocusController() {
 
 export default function RiskMap({ guidance }: { guidance: GuidanceRoute }) {
   const { t, pick, formatNumber, locale } = useI18n();
-  const { scenario, userPos, setUserPos } = useAppState();
+  const { scenario, scenarios, userPos, setUserPos } = useAppState();
 
   const icons = useMemo(() => {
     const place = (kind: SafePlaceKind, target: boolean) =>
@@ -102,37 +101,31 @@ export default function RiskMap({ guidance }: { guidance: GuidanceRoute }) {
         <BaseTiles />
         <FocusController />
 
-        {scenario && (
-          <>
-            <ZoneShape zone={scenario.zone} color={HAZARD_COLOR[scenario.hazard]} />
-            {scenario.closedRoads.map((road) => (
-              <Polyline
-                key={road.id}
-                positions={road.path}
-                pathOptions={{
-                  color: "#111827",
-                  weight: 6,
-                  opacity: 0.85,
-                  dashArray: "2 10",
-                  lineCap: "round",
-                }}
-              >
-                <Tooltip sticky>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Ban size={14} className="text-red-600" aria-hidden />
-                    {pick(road.label)}
-                  </span>
-                </Tooltip>
-              </Polyline>
-            ))}
-            {scenario.incidents.map((inc) => (
-              <Marker key={inc.id} position={inc.position} icon={icons.hazard[inc.type]}>
-                <Popup>
-                  <div dir={locale === "ar" ? "rtl" : "ltr"}>{pick(inc.label)}</div>
-                </Popup>
-              </Marker>
-            ))}
-          </>
+        {scenarios.map((s) => (
+          <DangerLayer
+            key={s.id}
+            scenario={s}
+            labels={{ zone: t("dangerZone"), road: t("closedRoadWarning") }}
+            pick={pick}
+          />
+        ))}
+        {scenarios.flatMap((s) =>
+          s.incidents.map((inc) => (
+            <Marker key={inc.id} position={inc.position} icon={icons.hazard[inc.type]}>
+              <Popup>
+                <div dir={locale === "ar" ? "rtl" : "ltr"}>{pick(inc.label)}</div>
+              </Popup>
+            </Marker>
+          )),
+        )}
+
+        {guidance.blocked && guidance.route?.alternative && (
+          <Polyline
+            positions={guidance.blocked.path}
+            pathOptions={{ color: "#64748b", weight: 4, opacity: 0.7, dashArray: "4 8" }}
+          >
+            <Tooltip sticky>{t("directRouteBlocked")}</Tooltip>
+          </Polyline>
         )}
 
         {guidance.route && (

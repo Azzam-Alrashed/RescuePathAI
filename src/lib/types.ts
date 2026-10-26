@@ -6,7 +6,7 @@ export type Bilingual = Record<Locale, string>;
 /** [latitude, longitude] */
 export type LatLng = [number, number];
 
-export type HazardType = "missile" | "flood" | "fire" | "road" | "trapped";
+export type HazardType = "missile" | "flood" | "fire" | "collapse" | "trapped";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
@@ -48,20 +48,42 @@ export interface SafePlace {
   capacity: number;
 }
 
-export interface VulnerableFlags {
-  children: boolean;
-  elderly: boolean;
-  disabled: boolean;
+/** Groups of affected people the resident can count. */
+export type AffectedGroup = "elderly" | "disabled" | "children" | "pregnant" | "adults" | "trapped";
+
+export type AffectedCounts = Record<AffectedGroup, number>;
+
+/** How the resident described the situation. */
+export type ReportChannel = "text" | "photo" | "voice" | "sos";
+
+/** What the image analysis made of an incident photo. */
+export interface ImageAnalysis {
+  hazard: HazardType;
+  severity: Severity;
+  teams: ResponseTeam[];
+  findings: Bilingual;
+  /** 0–1. */
+  confidence: number;
+  source: "ai" | "simulated";
 }
 
 export interface SosInput {
   hazard: HazardType | "unknown";
   description: string;
-  peopleCount: number;
-  vulnerable: VulnerableFlags;
-  /** Consent to share vulnerability details with responders. */
+  affected: AffectedCounts;
+  /** Consent to share the vulnerable groups (all but adults and trapped) with responders. */
   shareVulnerable: boolean;
   position: LatLng;
+  channel: ReportChannel;
+  /** Downscaled JPEG data URL. */
+  photo?: string;
+  photoAnalysis?: ImageAnalysis;
+}
+
+/** Teams and equipment a case needs. */
+export interface ResourcePlan {
+  teams: { type: ResponseTeam; count: number }[];
+  equipment: Bilingual[];
 }
 
 export interface TriageResult {
@@ -69,7 +91,9 @@ export interface TriageResult {
   severity: Severity;
   /** 1 (lowest) – 100 (highest); used to order the response queue. */
   priority: number;
-  team: ResponseTeam;
+  /** Team types needed, most important first. */
+  teams: ResponseTeam[];
+  resources: ResourcePlan;
   reasoning: Bilingual;
   source: "ai" | "rules";
 }
@@ -85,7 +109,7 @@ export interface ResponseUpdate {
   id: string;
   status: CaseStatus;
   severity: Severity;
-  team?: { name: Bilingual; type: ResponseTeam };
+  teams: { name: Bilingual; type: ResponseTeam }[];
   etaS?: number;
 }
 
@@ -118,22 +142,45 @@ export interface SosCase extends SosInput {
   /** Severity confirmed or corrected by a dispatcher. */
   reviewedSeverity?: Severity;
   status: CaseStatus;
-  teamId?: string;
-  /** Estimated travel time of the assigned team, set at dispatch. */
+  teamIds: string[];
+  /** Estimated travel time of the first team to arrive, set at dispatch. */
   etaS?: number;
+  assignedAt?: number;
+  onSceneAt?: number;
+  resolvedAt?: number;
+  outcome?: CaseOutcome;
+  /** An open case that looks like the same incident. */
+  duplicateOf?: string;
+  /** Set when this case was merged into another one. */
+  mergedInto?: string;
+  /** Severity and priority over time, newest last. */
+  history: CaseHistoryEntry[];
+}
+
+export type CaseOutcome = "rescued" | "transferred" | "false_alarm" | "merged";
+
+export interface CaseHistoryEntry {
+  at: number;
+  severity: Severity;
+  priority: number;
+  reason: Bilingual;
 }
 
 /** A dispatcher's decision on a case. */
 export type CaseAction =
   | { action: "review"; severity: Severity }
   | { action: "assign"; teamId: string }
+  | { action: "release"; teamId: string }
   | { action: "on_scene" }
-  | { action: "resolve" };
+  | { action: "resolve"; outcome: Exclude<CaseOutcome, "merged"> }
+  | { action: "reassess"; affected: AffectedCounts; note: string }
+  | { action: "merge"; intoId: string }
+  | { action: "not_duplicate" };
 
 export interface OpsState {
   cases: SosCase[];
   teams: Team[];
-  scenarioId: string | null;
+  scenarioIds: string[];
 }
 
 export interface Route {
@@ -142,4 +189,6 @@ export interface Route {
   durationS: number;
   /** false when the routing service was unreachable and a straight line is shown. */
   routed: boolean;
+  /** An alternative chosen to avoid danger zones or closed roads. */
+  alternative?: boolean;
 }
