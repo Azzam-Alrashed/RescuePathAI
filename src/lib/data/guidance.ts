@@ -93,26 +93,29 @@ export const GUIDANCE: Record<HazardType, Guidance> = {
       en: "Get out fast, stay low, cover your nose, and don't go back in.",
     },
   },
-  road: {
-    title: { ar: "عند حادث مروري", en: "At a road accident" },
+  collapse: {
+    title: { ar: "عند انهيار مبنى", en: "When a building collapses" },
     steps: [
       {
-        ar: "أوقف سيارتك في مكان آمن وشغّل إشارات التنبيه.",
-        en: "Park somewhere safe and turn on your hazard lights.",
+        ar: "اخرج من المبنى فورًا إن استطعت، وابتعد عن الجدران والنوافذ والأعمدة الكهربائية.",
+        en: "Get out of the building now if you can, away from walls, windows and power lines.",
       },
       {
-        ar: "اتصل بالطوارئ وحدد الموقع وعدد المصابين.",
-        en: "Call emergency services with the location and number of injured.",
+        ar: "لا تعد إلى المبنى ولا تحاول رفع الركام بنفسك؛ قد ينهار جزء آخر.",
+        en: "Don't go back in or try to move rubble yourself; more of it may fall.",
       },
       {
-        ar: "لا تحرك المصابين إلا إذا كان هناك خطر مباشر كالحريق.",
-        en: "Don't move injured people unless there is immediate danger such as fire.",
+        ar: "اتصل بالدفاع المدني وأخبرهم بعدد الأشخاص الذين قد يكونون بالداخل.",
+        en: "Call civil defense and tell them how many people may still be inside.",
       },
-      { ar: "ابتعد عن حركة السير أثناء الانتظار.", en: "Keep away from traffic while you wait." },
+      {
+        ar: "إذا كنت عالقًا: غطِّ فمك، واطرق على الأنابيب أو الجدار ليسمعك المنقذون.",
+        en: "If you are trapped: cover your mouth and tap on a pipe or wall so rescuers can hear you.",
+      },
     ],
     simple: {
-      ar: "ابقَ بعيدًا عن السيارات، واطلب من شخص كبير الاتصال بالطوارئ.",
-      en: "Stay away from the cars and ask an adult to call emergency services.",
+      ar: "ابتعد عن المبنى المكسور، ولا تلمس الأسلاك، واطلب من شخص كبير الاتصال بالطوارئ.",
+      en: "Move away from the broken building, don't touch wires, and ask an adult to call for help.",
     },
   },
   trapped: {

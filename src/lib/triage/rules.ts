@@ -34,7 +34,23 @@ const KEYWORDS: Record<HazardType, string[]> = {
     "wadi",
   ],
   fire: ["حريق", "نار", "دخان", "اشتعال", "لهب", "fire", "smoke", "burning", "flames"],
-  road: ["حادث", "تصادم", "سيارة", "مركبة", "انقلاب", "accident", "crash", "collision", "car", "vehicle"],
+  collapse: [
+    "انهيار",
+    "انهار",
+    "سقط المبنى",
+    "سقوط مبنى",
+    "سقوط سقف",
+    "سقوط سور",
+    "سقوط جدار",
+    "تصدع",
+    "تشقق",
+    "ركام",
+    "collapse",
+    "collapsed",
+    "crack",
+    "roof fell",
+    "wall fell",
+  ],
   trapped: [
     "محاصر",
     "محاصرين",
@@ -83,7 +99,7 @@ function detectHazard(text: string, input: SosInput): HazardType {
   // "Trapped" wins over the underlying hazard: it is what drives the rescue need.
   if (includesAny(text, KEYWORDS.trapped) || input.affected.trapped > 0) return "trapped";
   // The description wins over the resident's quick selection when they disagree.
-  for (const type of ["fire", "flood", "missile", "road"] as const) {
+  for (const type of ["fire", "collapse", "flood", "missile"] as const) {
     if (includesAny(text, KEYWORDS[type])) return type;
   }
   // Then what the photo shows.
@@ -96,7 +112,8 @@ function pickTeam(hazard: HazardType, text: string, injured: boolean, minor: boo
   // e.g. a road closed by pooled water: traffic control, not a rescue.
   if (minor) return "police";
   if (hazard === "flood" || (hazard === "trapped" && includesAny(text, KEYWORDS.flood))) return "water_rescue";
-  if (hazard === "road") return injured ? "ambulance" : "police";
+  // Collapses and strikes need civil defense first; ambulances join for injuries.
+  if (hazard === "collapse" || hazard === "missile") return "civil_defense";
   if (injured) return "ambulance";
   return "civil_defense";
 }
@@ -113,7 +130,7 @@ export function triageWithRules(input: SosInput): TriageResult {
   const hazard = detectHazard(text, input);
   const lifeThreat = includesAny(text, LIFE_THREAT);
   const injured = lifeThreat || includesAny(text, INJURY);
-  const minor = includesAny(text, MINOR) && !injured && (hazard === "flood" || hazard === "road");
+  const minor = includesAny(text, MINOR) && !injured && hazard === "flood";
   const people = Math.max(1, totalAffected(input.affected));
   const vulnerable = vulnerableCount(input.affected);
   // A one-tap SOS comes from someone who can't type or talk: assume the worst.
@@ -121,7 +138,7 @@ export function triageWithRules(input: SosInput): TriageResult {
 
   let severity: Severity;
   if (hazard === "trapped" || lifeThreat || quickSos) severity = "critical";
-  else if (injured || hazard === "missile" || hazard === "fire") severity = "high";
+  else if (injured || hazard === "missile" || hazard === "fire" || hazard === "collapse") severity = "high";
   else if (minor) severity = "low";
   else severity = "medium";
   if (input.photoAnalysis) severity = maxSeverity(severity, input.photoAnalysis.severity);

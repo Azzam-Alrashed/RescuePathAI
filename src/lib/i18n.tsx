@@ -348,7 +348,7 @@ export const HAZARD_LABELS: Record<HazardType, Bilingual> = {
   missile: { ar: "تهديد صاروخي", en: "Missile threat" },
   flood: { ar: "سيول وفيضانات", en: "Flood" },
   fire: { ar: "حريق", en: "Fire" },
-  road: { ar: "حادث طريق", en: "Road accident" },
+  collapse: { ar: "انهيار مبنى", en: "Building collapse" },
   trapped: { ar: "أشخاص محاصرون", en: "People trapped" },
 };
 

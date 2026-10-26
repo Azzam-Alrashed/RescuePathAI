@@ -19,9 +19,9 @@ const ImageSchema = z.object({
 const SYSTEM_PROMPT = `You look at photos residents attach to emergency reports for RescuePath AI, a disaster-response platform in Riyadh, Saudi Arabia. Your preliminary reading helps dispatchers; a human always reviews it.
 
 From the photo, decide:
-- hazard: missile (missile strike, debris, shrapnel, blast damage), flood (flash flood, standing or rising water, submerged cars), fire (flames, smoke), road (traffic accident), trapped (people visibly trapped or unable to get out; use this whenever that is the main rescue need).
+- hazard: missile (missile strike, debris, shrapnel, blast damage), flood (flash flood, standing or rising water, submerged cars), fire (flames, smoke), collapse (collapsed or partly collapsed building, wall or roof; large structural cracks), trapped (people visibly trapped or unable to get out; use this whenever that is the main rescue need).
 - severity: low (limited, no direct threat to life), medium (could escalate or cause damage), high (clear risk to people), critical (direct threat to life, e.g. people in water, a building on fire with people inside, collapse).
-- teams: civil_defense (general rescue, debris, collapse), ambulance (injuries), water_rescue (people or vehicles in water), fire_rescue (fire, smoke), police (traffic control, closed roads).
+- teams: civil_defense (general rescue, debris, building collapse), ambulance (injuries), water_rescue (people or vehicles in water), fire_rescue (fire, smoke), police (traffic control, closed roads).
 - findings: the concrete visual facts that drove the rating (water depth against cars, size of the fire, visible people, damage), short enough to scan.
 - confidence: how sure you are from the photo alone.
 
@@ -76,7 +76,7 @@ const TEAM_FOR: Record<HazardType, (typeof TEAM_TYPES)[number]> = {
   flood: "water_rescue",
   fire: "fire_rescue",
   missile: "civil_defense",
-  road: "ambulance",
+  collapse: "civil_defense",
   trapped: "civil_defense",
 };
 
@@ -102,11 +102,11 @@ const SIMULATED: Record<HazardType, { severity: Severity; findings: Bilingual }>
       en: "Damage from falling debris with scattered fragments. Keep people away until the site is secured.",
     },
   },
-  road: {
-    severity: "medium",
+  collapse: {
+    severity: "high",
     findings: {
-      ar: "تصادم بين مركبتين مع أضرار في المقدمة. يُحتمل وجود إصابات ويلزم تنظيم الحركة المرورية.",
-      en: "Two-vehicle collision with front-end damage. Injuries are possible and traffic needs managing.",
+      ar: "انهيار جزئي في مبنى مع ركام متساقط وتشققات في الجدران. احتمال وجود أشخاص تحت الأنقاض وخطر انهيار إضافي.",
+      en: "Partial building collapse with fallen debris and cracked walls. People may be under the rubble and more may fall.",
     },
   },
   trapped: {

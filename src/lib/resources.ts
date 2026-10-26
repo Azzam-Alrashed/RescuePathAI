@@ -16,7 +16,7 @@ const EQUIPMENT = {
   firstAid: { ar: "حقيبة إسعافات أولية", en: "First-aid kit" },
   wheelchair: { ar: "كرسي متحرك / نقالة خاصة", en: "Wheelchair / special stretcher" },
   barriers: { ar: "حواجز ومخاريط مرور", en: "Traffic barriers & cones" },
-  tow: { ar: "ونش سحب", en: "Tow truck" },
+  shoring: { ar: "دعامات تثبيت المباني", en: "Building shoring" },
 } satisfies Record<string, Bilingual>;
 
 /** Main team type per hazard, before looking at injuries. */
@@ -24,7 +24,7 @@ const PRIMARY: Record<HazardType, ResponseTeam> = {
   flood: "water_rescue",
   fire: "fire_rescue",
   missile: "civil_defense",
-  road: "police",
+  collapse: "civil_defense",
   trapped: "civil_defense",
 };
 
@@ -32,7 +32,7 @@ const HAZARD_EQUIPMENT: Record<HazardType, Bilingual[]> = {
   flood: [EQUIPMENT.boat, EQUIPMENT.lifeJackets, EQUIPMENT.ropes],
   fire: [EQUIPMENT.engine, EQUIPMENT.breathing, EQUIPMENT.ladder],
   missile: [EQUIPMENT.detector, EQUIPMENT.search, EQUIPMENT.cutters],
-  road: [EQUIPMENT.barriers, EQUIPMENT.cutters, EQUIPMENT.tow],
+  collapse: [EQUIPMENT.search, EQUIPMENT.shoring, EQUIPMENT.cutters],
   trapped: [EQUIPMENT.cutters, EQUIPMENT.search, EQUIPMENT.ropes],
 };
 
@@ -65,12 +65,12 @@ export function planResources(
   // Trapped people need civil defense alongside the hazard team.
   if (affectedCounts.trapped > 0 && primary !== "civil_defense") add("civil_defense", 1);
   // Large incidents need traffic control around the scene.
-  if (people >= 10 || (hazard === "missile" && urgent)) add("police", 1);
+  if (people >= 10 || ((hazard === "missile" || hazard === "collapse") && urgent)) add("police", 1);
 
   // People trapped by water or fire need that hazard's kit as well as cutters.
   const underlying = hazard === "trapped" ? TEAM_HAZARD[primary] : undefined;
   const equipment = underlying ? [...HAZARD_EQUIPMENT[underlying], EQUIPMENT.cutters] : [...HAZARD_EQUIPMENT[hazard]];
-  if (primary === "police" && hazard !== "road") equipment.unshift(EQUIPMENT.barriers);
+  if (primary === "police") equipment.unshift(EQUIPMENT.barriers);
   if (hazard === "flood" && severity === "low")
     equipment.splice(0, equipment.length, EQUIPMENT.pumps, EQUIPMENT.barriers);
   if (counts.has("ambulance")) equipment.push(EQUIPMENT.stretchers, EQUIPMENT.firstAid);

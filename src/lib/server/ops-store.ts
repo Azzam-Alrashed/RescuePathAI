@@ -39,7 +39,7 @@ const DEMO_REPORTS: DemoReport[] = [
   },
   {
     minutesAgo: 6,
-    hazard: "road",
+    hazard: "flood",
     description: "Car stalled in the flooded underpass, driver is still inside",
     affected: affected({ adults: 1 }),
     shareVulnerable: false,
@@ -63,11 +63,11 @@ const DEMO_REPORTS: DemoReport[] = [
   },
   {
     minutesAgo: 14,
-    hazard: "road",
-    description: "تصادم سيارتين على طريق الملك فهد ويوجد مصابين",
-    affected: affected({ adults: 3 }),
-    shareVulnerable: false,
-    position: [24.735, 46.656],
+    hazard: "collapse",
+    description: "انهيار جزئي لسقف مبنى سكني قديم في حي الملز بعد الأمطار، ويوجد مصابين",
+    affected: affected({ adults: 3, elderly: 1 }),
+    shareVulnerable: true,
+    position: [24.665, 46.73],
   },
   {
     minutesAgo: 18,
@@ -98,8 +98,8 @@ const PAST_REPORTS: (DemoReport & {
 })[] = [
   {
     minutesAgo: 95,
-    hazard: "road",
-    description: "انقلاب مركبة على الدائري الشمالي والسائق مصاب",
+    hazard: "collapse",
+    description: "سقوط سور مدرسة بعد الأمطار وإصابة عامل",
     affected: affected({ adults: 1 }),
     shareVulnerable: false,
     position: [24.775, 46.7],
@@ -107,7 +107,7 @@ const PAST_REPORTS: (DemoReport & {
     travelMin: 7,
     sceneMin: 25,
     outcome: "transferred",
-    teamIds: ["am-1", "po-1"],
+    teamIds: ["cd-1", "am-1"],
   },
   {
     minutesAgo: 80,
@@ -250,8 +250,8 @@ function createStore(): Store {
   DEMO_REPORTS.forEach((r, i) => addDemoCase(store, `demo-${i + 1}`, r, now));
 
   // One case already in progress, to show the full lifecycle.
+  assignTeam(store, "demo-5", "cd-1");
   assignTeam(store, "demo-5", "am-2");
-  assignTeam(store, "demo-5", "po-1");
   return store;
 }
 

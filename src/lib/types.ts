@@ -6,7 +6,7 @@ export type Bilingual = Record<Locale, string>;
 /** [latitude, longitude] */
 export type LatLng = [number, number];
 
-export type HazardType = "missile" | "flood" | "fire" | "road" | "trapped";
+export type HazardType = "missile" | "flood" | "fire" | "collapse" | "trapped";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 

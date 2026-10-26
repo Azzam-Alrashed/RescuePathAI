@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import {
   Ambulance,
-  CarFront,
+  Building2,
   CircleQuestionMark,
   FireExtinguisher,
   Flag,
@@ -29,7 +29,7 @@ export const HAZARD_COLOR: Record<HazardType, string> = {
   missile: "#dc2626",
   flood: "#2563eb",
   fire: "#ea580c",
-  road: "#ca8a04",
+  collapse: "#78716c",
   trapped: "#9333ea",
 };
 
@@ -45,7 +45,7 @@ export const HAZARD_NODE: Record<HazardType | "unknown", IconNode> = {
   missile: Rocket,
   flood: WavesArrowUp,
   fire: Flame,
-  road: CarFront,
+  collapse: Building2,
   trapped: LifeBuoy,
   unknown: CircleQuestionMark,
 };

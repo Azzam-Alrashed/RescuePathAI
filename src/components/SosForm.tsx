@@ -24,7 +24,7 @@ import { HAZARD_LABELS, useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
 import type { AffectedCounts, HazardType, ImageAnalysis, ReportChannel, SosInput } from "@/lib/types";
 
-const HAZARD_OPTIONS: (HazardType | "unknown")[] = ["trapped", "flood", "fire", "missile", "road", "unknown"];
+const HAZARD_OPTIONS: (HazardType | "unknown")[] = ["trapped", "flood", "fire", "missile", "collapse", "unknown"];
 
 type Method = "camera" | "upload" | "voice" | "text";
 

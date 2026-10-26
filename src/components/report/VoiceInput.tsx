@@ -20,9 +20,9 @@ const SAMPLE_TRANSCRIPTS: Record<HazardType | "unknown", Bilingual> = {
     ar: "سمعنا انفجار قوي وطاحت شظايا على الشارع، فيه شخص مصاب عند البوابة",
     en: "We heard a loud blast and debris fell on the street, someone is injured by the gate",
   },
-  road: {
-    ar: "صار حادث بين سيارتين عند الإشارة، واحد من السواقين ينزف",
-    en: "Two cars crashed at the traffic light, one of the drivers is bleeding",
+  collapse: {
+    ar: "انهار جزء من سقف العمارة اللي جنبنا، فيه ناس كانوا بالدور الأرضي وواحد مصاب",
+    en: "Part of the roof of the building next to us collapsed, people were on the ground floor and one is injured",
   },
   trapped: {
     ar: "إحنا محبوسين في المصعد بعد انقطاع الكهرباء، ثلاثة أشخاص",

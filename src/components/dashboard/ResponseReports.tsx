@@ -24,7 +24,7 @@ import { HAZARD_LABELS, I18nProvider, SEVERITY_LABELS, TEAM_LABELS, useI18n } fr
 import type { CaseOutcome, HazardType, ResponseTeam, Severity, SosCase } from "@/lib/types";
 import { useOpsState } from "@/lib/use-ops-state";
 
-const HAZARDS: HazardType[] = ["flood", "fire", "missile", "road", "trapped"];
+const HAZARDS: HazardType[] = ["flood", "fire", "missile", "collapse", "trapped"];
 const SEVERITIES: Severity[] = ["critical", "high", "medium", "low"];
 const OUTCOMES: CaseOutcome[] = ["rescued", "transferred", "false_alarm", "merged"];
 const OUTCOME_COLOR: Record<CaseOutcome, string> = {
