@@ -1,13 +1,17 @@
 "use client";
 
 import {
+  Camera,
   CircleCheck,
   Clock,
+  Copy,
   Eye,
   Inbox,
   ListChecks,
   MapPin,
+  Mic,
   Navigation,
+  Siren,
   Sparkles,
   TriangleAlert,
   Users,
@@ -15,12 +19,16 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { timeAgo } from "@/components/dashboard/format";
-import { HazardTile, VULNERABLE_ICON } from "@/components/icons";
+import { AFFECTED_ICON, HazardTile } from "@/components/icons";
 import { SEVERITY_COLOR, SeverityBadge } from "@/components/severity";
 import { Chip } from "@/components/ui";
+import { totalAffected, VULNERABLE_GROUPS } from "@/lib/affected";
 import { byPriority, effectivePriority, effectiveSeverity, isOpen } from "@/lib/dispatch";
-import { HAZARD_LABELS, useI18n } from "@/lib/i18n";
-import type { CaseStatus, SosCase } from "@/lib/types";
+import { caseStage, HAZARD_LABELS, useI18n, type CaseStage } from "@/lib/i18n";
+import type { CaseStatus, ReportChannel, SosCase } from "@/lib/types";
+
+const CHANNEL_ICON: Partial<Record<ReportChannel, LucideIcon>> = { photo: Camera, voice: Mic, sos: Siren };
+const STAGES: CaseStage[] = ["new", "responding", "rescued"];
 
 const CASE_STATUS: Record<CaseStatus, { tone: "amber" | "sky" | "orange" | "blue" | "neutral"; icon: LucideIcon }> = {
   new: { tone: "amber", icon: TriangleAlert },
@@ -49,33 +57,31 @@ interface Props {
 
 export function CaseQueue({ cases, selectedId, onSelect, now }: Props) {
   const { t, pick, locale, formatNumber } = useI18n();
-  const [filter, setFilter] = useState<"open" | "closed">("open");
+  const [filter, setFilter] = useState<CaseStage>("new");
 
-  const shown = cases.filter((c) => (filter === "open" ? isOpen(c) : !isOpen(c)));
-  shown.sort(filter === "open" ? byPriority : (a, b) => b.updatedAt - a.updatedAt);
-  const openCount = cases.filter(isOpen).length;
-  const closedCount = cases.length - openCount;
+  const countOf = (stage: CaseStage) => cases.filter((c) => caseStage(c.status) === stage).length;
+  const shown = cases.filter((c) => caseStage(c.status) === filter);
+  shown.sort(filter === "rescued" ? (a, b) => b.updatedAt - a.updatedAt : byPriority);
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3">
         <h2 className="text-base font-bold">{t("queue")}</h2>
         <div className="flex rounded-xl bg-slate-200/70 p-0.5 text-xs dark:bg-slate-800" role="tablist">
-          {(["open", "closed"] as const).map((f) => (
+          {STAGES.map((f) => (
             <button
               type="button"
               key={f}
               role="tab"
               aria-selected={filter === f}
               onClick={() => setFilter(f)}
-              className={`rounded-lg px-3 py-1.5 font-semibold transition ${
+              className={`rounded-lg px-2 py-1.5 font-semibold transition ${
                 filter === f
                   ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white"
                   : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
             >
-              {f === "open" ? t("filterOpen") : t("filterClosed")}{" "}
-              <span className="tabular-nums opacity-60">{formatNumber(f === "open" ? openCount : closedCount)}</span>
+              {t(`stage_${f}`)} <span className="tabular-nums opacity-60">{formatNumber(countOf(f))}</span>
             </button>
           ))}
         </div>
@@ -91,6 +97,7 @@ export function CaseQueue({ cases, selectedId, onSelect, now }: Props) {
         {shown.map((c) => {
           const sev = effectiveSeverity(c);
           const isSelected = selectedId === c.id;
+          const ChannelIcon = CHANNEL_ICON[c.channel];
           return (
             <li key={c.id}>
               <button
@@ -128,19 +135,33 @@ export function CaseQueue({ cases, selectedId, onSelect, now }: Props) {
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   <SeverityBadge severity={sev} />
                   <CaseStatusChip status={c.status} />
+                  {c.duplicateOf && isOpen(c) && (
+                    <Chip tone="orange" icon={Copy}>
+                      {t("possibleDuplicate")}
+                    </Chip>
+                  )}
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                   <span className="inline-flex items-center gap-1">
                     <Users size={13} aria-hidden />
-                    {formatNumber(c.peopleCount)}
+                    {formatNumber(Math.max(1, totalAffected(c.affected)))}
                   </span>
-                  {c.shareVulnerable &&
-                    (["children", "elderly", "disabled"] as const)
-                      .filter((k) => c.vulnerable[k])
-                      .map((k) => {
-                        const Icon = VULNERABLE_ICON[k];
-                        return <Icon key={k} size={13} className="text-sky-600 dark:text-sky-400" aria-label={t(k)} />;
-                      })}
+                  {[...VULNERABLE_GROUPS, "trapped" as const]
+                    .filter((k) => c.affected[k] > 0)
+                    .map((k) => {
+                      const Icon = AFFECTED_ICON[k];
+                      return (
+                        <Icon
+                          key={k}
+                          size={13}
+                          className={k === "trapped" ? "text-red-600" : "text-sky-600 dark:text-sky-400"}
+                          aria-label={t(`group_${k}`)}
+                        />
+                      );
+                    })}
+                  {ChannelIcon && (
+                    <ChannelIcon size={13} className="text-violet-600" aria-label={t(`channel_${c.channel}`)} />
+                  )}
                   <span className="ms-auto inline-flex items-center gap-3">
                     <span
                       className="inline-flex items-center gap-1"

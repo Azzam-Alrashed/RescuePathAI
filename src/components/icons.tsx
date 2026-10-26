@@ -14,10 +14,12 @@ import {
   Ship,
   FireExtinguisher,
   Flag,
+  HeartPulse,
+  Users,
   WavesArrowUp,
   type LucideIcon,
 } from "lucide-react";
-import type { HazardType, ResponseTeam, VulnerableFlags } from "@/lib/types";
+import type { AffectedGroup, HazardType, ResponseTeam } from "@/lib/types";
 
 export const HAZARD_ICON: Record<HazardType | "unknown", LucideIcon> = {
   missile: Rocket,
@@ -38,10 +40,13 @@ export const TEAM_ICON: Record<ResponseTeam, LucideIcon> = {
 
 export const PLACE_ICON = { shelter: ShieldCheck, assembly: Flag } as const;
 
-export const VULNERABLE_ICON: Record<keyof VulnerableFlags, LucideIcon> = {
+export const AFFECTED_ICON: Record<AffectedGroup, LucideIcon> = {
+  adults: Users,
   children: Baby,
   elderly: PersonStanding,
   disabled: Accessibility,
+  pregnant: HeartPulse,
+  trapped: LifeBuoy,
 };
 
 /** Tinted background + text colour per hazard, for icon tiles. */

@@ -23,6 +23,32 @@ function inPolygon([lat, lng]: LatLng, points: LatLng[]): boolean {
   return inside;
 }
 
+/** Distance from a point to a segment in metres (local flat projection, fine at city scale). */
+export function pointSegmentDistanceM(p: LatLng, a: LatLng, b: LatLng): number {
+  const kx = 111_320 * Math.cos(toRad(p[0]));
+  const ky = 110_540;
+  const [px, py] = [p[1] * kx, p[0] * ky];
+  const [ax, ay] = [a[1] * kx, a[0] * ky];
+  const [bx, by] = [b[1] * kx, b[0] * ky];
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+/** Shortest distance from a point to a polyline, in metres. */
+export function distanceToPathM(p: LatLng, path: LatLng[]): number {
+  let best = Infinity;
+  for (let i = 1; i < path.length; i++) best = Math.min(best, pointSegmentDistanceM(p, path[i - 1], path[i]));
+  return best;
+}
+
+/** Moves a point by metres north and east. */
+export function offsetM([lat, lng]: LatLng, northM: number, eastM: number): LatLng {
+  return [lat + northM / 110_540, lng + eastM / (111_320 * Math.cos(toRad(lat)))];
+}
+
 export function isInZone(point: LatLng, zone: Zone): boolean {
   return zone.kind === "circle" ? distanceM(point, zone.center) <= zone.radiusM : inPolygon(point, zone.points);
 }

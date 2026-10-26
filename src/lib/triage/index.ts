@@ -1,17 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
+import { totalAffected } from "@/lib/affected";
+import { planResources } from "@/lib/resources";
 import { triageWithRules } from "@/lib/triage/rules";
 import type { SosInput, TriageResult } from "@/lib/types";
 
 export const HAZARDS = ["missile", "flood", "fire", "road", "trapped"] as const;
 export const SEVERITIES = ["low", "medium", "high", "critical"] as const;
+export const TEAM_TYPES = ["civil_defense", "ambulance", "water_rescue", "fire_rescue", "police"] as const;
 
 const TriageSchema = z.object({
   hazard: z.enum(HAZARDS),
   severity: z.enum(SEVERITIES),
   priority: z.number().int().describe("1 (lowest) to 100 (highest)"),
-  team: z.enum(["civil_defense", "ambulance", "water_rescue", "fire_rescue", "police"]),
+  team: z.enum(TEAM_TYPES).describe("The main team type the case needs"),
+  injured: z.boolean().describe("Whether anyone is or may be injured"),
   reasoning_ar: z.string().describe("One or two short sentences in Arabic"),
   reasoning_en: z.string().describe("The same reasoning in English"),
 });
@@ -25,25 +29,29 @@ Classify each report:
   - medium: could escalate or cause damage; needs monitoring.
   - high: clear risk to people's safety; needs an urgent response.
   - critical: direct threat to life (e.g. people trapped in a fire or in a building taking on water, someone unconscious or not breathing).
-- priority: 1–100. Start from severity (low ≈ 15, medium ≈ 40, high ≈ 65, critical ≈ 85), then raise it for more people affected and for children, older adults or people with disabilities. Do not use arrival time.
-- team: civil_defense (general rescue, missile debris, structural collapse), ambulance (medical emergencies, injuries), water_rescue (flood rescues, people or vehicles in water), fire_rescue (fires, smoke), police (traffic control, closed roads without injuries).
+- priority: 1–100. Start from severity (low ≈ 15, medium ≈ 40, high ≈ 65, critical ≈ 85), then raise it for more people affected, for people trapped, and for children, older adults, pregnant women or people with disabilities. A one-tap SOS (no details) is critical until verified. Do not use arrival time.
+- team: the main team type needed: civil_defense (general rescue, missile debris, structural collapse), ambulance (medical emergencies, injuries), water_rescue (flood rescues, people or vehicles in water), fire_rescue (fires, smoke), police (traffic control, closed roads without injuries).
+- injured: true if anyone is or may be injured (decides whether ambulances go too).
 - reasoning: one or two short sentences a dispatcher can scan, in Arabic and in English, naming the facts that drove the rating.
 
 Reports may be in Arabic or English and may be short, panicked or misspelled. When the report is ambiguous, lean towards the higher severity: missing a critical case costs more than over-prioritising. The resident's own hazard choice is a hint, not a fact; the description wins if they disagree.`;
 
 function describeReport(input: SosInput): string {
-  const v = input.vulnerable;
-  const vulnerable = input.shareVulnerable
-    ? [v.children && "children", v.elderly && "older adults", v.disabled && "people with disabilities"]
-        .filter(Boolean)
-        .join(", ") || "none reported"
-    : "not shared";
-  return [
+  const a = input.affected;
+  const groups = input.shareVulnerable
+    ? `adults ${a.adults}, children ${a.children}, older adults ${a.elderly}, people with disabilities ${a.disabled}, pregnant women ${a.pregnant}, trapped ${a.trapped}`
+    : `adults ${a.adults}, trapped ${a.trapped} (vulnerable groups not shared)`;
+  const lines = [
+    `Report channel: ${input.channel === "sos" ? "one-tap SOS button, no details" : input.channel}`,
     `Hazard selected by the resident: ${input.hazard}`,
-    `People involved: ${input.peopleCount}`,
-    `People needing extra support: ${vulnerable}`,
+    `People affected: ${Math.max(1, totalAffected(a))} (${groups})`,
     `Description:\n<report>\n${input.description || "(no description)"}\n</report>`,
-  ].join("\n");
+  ];
+  if (input.photoAnalysis) {
+    const p = input.photoAnalysis;
+    lines.push(`Analysis of the attached photo: ${p.hazard}, ${p.severity} severity. ${p.findings.en}`);
+  }
+  return lines.join("\n");
 }
 
 async function triageWithClaude(client: Anthropic, input: SosInput): Promise<TriageResult | null> {
@@ -62,11 +70,13 @@ async function triageWithClaude(client: Anthropic, input: SosInput): Promise<Tri
 
   if (response.stop_reason === "refusal" || !response.parsed_output) return null;
   const out = response.parsed_output;
+  const resources = planResources(out.hazard, out.severity, input.affected, out.injured, out.team);
   return {
     hazard: out.hazard,
     severity: out.severity,
     priority: Math.max(1, Math.min(100, out.priority)),
-    team: out.team,
+    teams: resources.teams.map((t) => t.type),
+    resources,
     reasoning: { ar: out.reasoning_ar, en: out.reasoning_en },
     source: "ai",
   };

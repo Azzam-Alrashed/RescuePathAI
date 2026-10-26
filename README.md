@@ -15,8 +15,14 @@
 - **Early warning**: residents inside the affected zone get the alert; residents outside are told to avoid the area.
 - **Shelter vs. evacuation guidance**: missile alerts route you on foot to the nearest approved shelter, or tell you to shelter in place when none is within a 5-minute walk; floods and fires route you to the nearest safe assembly point outside the zone.
 - **Hazard-specific safety steps**, including simple wording for children and older adults, plus emergency numbers.
-- **SOS reports**: location, hazard type, description, number of people, and (with consent) children, older adults or people with disabilities.
-- **Live response status**: residents see when their report is reviewed, which team is on the way and its ETA, and when it arrives.
+- **Four ways to report**: take a photo, upload a photo, record a voice note, or write a description.
+- **Photo analysis**: Claude looks at the incident photo and suggests the hazard, severity and teams; without an API key a clearly labelled simulated analysis is shown instead.
+- **Instant SOS**: press and hold to send your location as a critical report, for people who can't type or talk.
+- **People affected**: −/+ counters for adults, children, older adults, people with disabilities, pregnant women and people trapped, with a live total. Vulnerable groups are shared only with consent.
+- **Simulated voice notes**: real recording in the browser; the transcript is a sample the resident can edit.
+- **Live response status**: new → responding → rescued, with the teams on the way and their ETA.
+- **Danger zones and alternative routes**: zones and closed roads in red with warning markers; routes that cross another danger zone or a closed road are replaced by an alternative (simulated where the demo data has no real road closure).
+- **Simultaneous scenarios**: run the missile, flood and fire scenarios at once; each brings its own incoming reports.
 - **Offline mode**: guidance and numbers are bundled in the app; SOS reports made without a connection are saved, clearly marked "not sent yet", and sent automatically on reconnect.
 
 ### Operations dashboard (`/dashboard`)
@@ -24,8 +30,15 @@
 - **AI triage**: each report is classified by hazard type, severity (🟢 low → 🔴 critical), priority score and needed team, with reasoning in Arabic and English.
 - **Priority queue**: ordered by severity, people affected and vulnerability, not arrival time.
 - **Human review**: dispatchers confirm the AI assessment or correct the severity; corrections re-rank the queue.
-- **AI dispatch**: suggests the nearest available team of the right type, serving the most urgent cases first so a lower-priority case never takes the team a critical one needs. Falls back to a capable substitute team when none of the right type is free. The dispatcher approves every assignment.
-- **Team tracking**: team status (available / dispatched / on scene) on the map, and case status updates through to closure.
+- **Required resources**: number and type of teams plus equipment, from the hazard, severity and people affected.
+- **Multi-team AI dispatch**: suggests the nearest available team for each needed type, serving the most urgent cases first so a lower-priority case never takes a team a critical one needs. Falls back to a capable substitute team when none of the right type is free. The dispatcher approves every assignment, or all at once.
+- **Critical alerts**: a red banner (and a beep) when a new critical report arrives.
+- **Report summary**: hazard, area, people affected and resources needed in one paragraph.
+- **Duplicate detection**: same hazard within 300 m and 30 minutes is flagged; merge it into the original or dismiss.
+- **Reassessment**: update the people affected or what changed; the case is re-rated and re-ranked, with a history.
+- **Heat map**: risk by area from open reports and active zones.
+- **Response reports** (`/dashboard/reports`): reports handled, response times, outcomes, and team utilisation.
+- **Team tracking**: team status (available / dispatched / on scene) on the map, and case status updates through to closure with an outcome.
 
 Both views are **Arabic-first (RTL)** with an English toggle.
 

@@ -180,6 +180,12 @@ function ActionCard({ guidance }: { guidance: GuidanceRoute }) {
               </div>
             )
           )}
+          {guidance.route?.alternative && (
+            <p className="mt-2 flex gap-1.5 rounded-lg bg-emerald-50 p-2 text-xs font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <TriangleAlert size={13} className="mt-0.5 shrink-0" aria-hidden />
+              {t("directRouteBlocked")} – {t("alternativeRoute")}
+            </p>
+          )}
           {guidance.route && !guidance.route.routed && (
             <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">{t("routeStraight")}</p>
           )}

@@ -16,9 +16,10 @@ import {
 import { HazardTile, TEAM_ICON } from "@/components/icons";
 import { SeverityBadge } from "@/components/severity";
 import { Button, Card, Chip } from "@/components/ui";
-import { HAZARD_LABELS, TEAM_LABELS, useI18n } from "@/lib/i18n";
+import { caseStage, HAZARD_LABELS, TEAM_LABELS, useI18n, type CaseStage } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
-import type { CaseStatus, ResponseUpdate, SosStatus } from "@/lib/types";
+import { summarizeCase } from "@/lib/summary";
+import type { ResponseUpdate, SosStatus } from "@/lib/types";
 
 const STATUS_CHIP: Record<SosStatus, { tone: "amber" | "sky" | "green" | "red"; icon: LucideIcon }> = {
   queued: { tone: "amber", icon: Clock },
@@ -27,7 +28,7 @@ const STATUS_CHIP: Record<SosStatus, { tone: "amber" | "sky" | "green" | "red"; 
   failed: { tone: "red", icon: CircleX },
 };
 
-const STEPS: CaseStatus[] = ["new", "reviewed", "assigned", "on_scene", "resolved"];
+const STEPS: CaseStage[] = ["new", "responding", "rescued"];
 
 export function ReportsList() {
   const { t, pick, locale, statusLabel, formatNumber } = useI18n();
@@ -64,6 +65,11 @@ export function ReportsList() {
               </Chip>
             </header>
 
+            {r.photo && (
+              // eslint-disable-next-line @next/next/no-img-element -- local data URL
+              <img src={r.photo} alt={t("photoAttached")} className="mt-3 max-h-40 w-full rounded-xl object-cover" />
+            )}
+
             {r.description && (
               <p dir="auto" className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                 {r.description}
@@ -96,9 +102,17 @@ export function ReportsList() {
                   <Chip>
                     {t("priority")} {formatNumber(r.triage.priority)}
                   </Chip>
-                  <Chip icon={TEAM_ICON[r.triage.team]}>{pick(TEAM_LABELS[r.triage.team])}</Chip>
+                  {r.triage.teams.map((team) => (
+                    <Chip key={team} icon={TEAM_ICON[team]}>
+                      {pick(TEAM_LABELS[team])}
+                    </Chip>
+                  ))}
                 </div>
                 <p className="mt-2 text-slate-700 dark:text-slate-300">{pick(r.triage.reasoning)}</p>
+                <p className="mt-2 rounded-lg bg-white p-2 text-xs leading-relaxed text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                  <span className="font-bold">{t("summaryTitle")}: </span>
+                  {pick(summarizeCase({ ...r, triage: r.triage }))}
+                </p>
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("humanReview")}</p>
               </div>
             )}
@@ -117,12 +131,11 @@ export function ReportsList() {
   );
 }
 
-/** Where the operations centre is with this report, as a five-step tracker. */
+/** Where the operations centre is with this report: new → responding → rescued. */
 function ResponseTracker({ response }: { response: ResponseUpdate }) {
   const { t, pick, formatNumber } = useI18n();
-  const current = STEPS.indexOf(response.status);
+  const current = STEPS.indexOf(caseStage(response.status));
   const active = response.status === "assigned" || response.status === "on_scene";
-  const TeamIcon = response.team ? TEAM_ICON[response.team.type] : null;
   const done = active ? "bg-emerald-600" : "bg-sky-600";
 
   return (
@@ -137,7 +150,7 @@ function ResponseTracker({ response }: { response: ResponseUpdate }) {
         {STEPS.map((step, i) => (
           <li key={step} className="flex flex-1 items-center last:flex-none">
             <span
-              title={t(`case_${step}`)}
+              title={t(`stage_${step}`)}
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                 i <= current
                   ? `${done} text-white`
@@ -152,16 +165,24 @@ function ResponseTracker({ response }: { response: ResponseUpdate }) {
           </li>
         ))}
       </ol>
+      <div className="mt-1.5 flex justify-between text-[11px] font-semibold opacity-75">
+        {STEPS.map((step) => (
+          <span key={step}>{t(`stage_${step}`)}</span>
+        ))}
+      </div>
       <p className="mt-2.5 text-sm font-bold">{t(`resp_${response.status}`)}</p>
-      {response.team && TeamIcon && (
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm">
-          <TeamIcon size={15} aria-hidden />
-          {pick(response.team.name)}
-          {response.status === "assigned" && response.etaS !== undefined && (
-            <span className="opacity-75">
-              · {t("eta")} ~{formatNumber(Math.max(1, Math.round(response.etaS / 60)))} {t("min")}
-            </span>
-          )}
+      {response.teams.map((team) => {
+        const TeamIcon = TEAM_ICON[team.type];
+        return (
+          <p key={pick(team.name)} className="mt-1 flex flex-wrap items-center gap-1.5 text-sm">
+            <TeamIcon size={15} aria-hidden />
+            {pick(team.name)}
+          </p>
+        );
+      })}
+      {response.status === "assigned" && response.etaS !== undefined && (
+        <p className="mt-1 text-sm opacity-75">
+          {t("eta")} ~{formatNumber(Math.max(1, Math.round(response.etaS / 60)))} {t("min")}
         </p>
       )}
     </div>

@@ -1,51 +1,100 @@
 "use client";
 
-import { Check, Hourglass, MapPin, Minus, Plus, Siren } from "lucide-react";
+import {
+  Camera,
+  Hourglass,
+  ImageUp,
+  MapPin,
+  Mic,
+  PenLine,
+  Siren,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
-import { HAZARD_ICON, HAZARD_TONE, VULNERABLE_ICON } from "@/components/icons";
-import { Button, Card } from "@/components/ui";
+import { HAZARD_ICON, HAZARD_TONE } from "@/components/icons";
+import { AffectedCounter } from "@/components/report/AffectedCounter";
+import { PhotoInput, type PhotoState } from "@/components/report/PhotoInput";
+import { QuickSos } from "@/components/report/QuickSos";
+import { VoiceInput } from "@/components/report/VoiceInput";
+import { Button, Card, SectionTitle } from "@/components/ui";
+import { affected, SENSITIVE_GROUPS } from "@/lib/affected";
 import { HAZARD_LABELS, useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
-import type { HazardType, SosInput, VulnerableFlags } from "@/lib/types";
+import type { AffectedCounts, HazardType, ImageAnalysis, ReportChannel, SosInput } from "@/lib/types";
 
 const HAZARD_OPTIONS: (HazardType | "unknown")[] = ["trapped", "flood", "fire", "missile", "road", "unknown"];
 
+type Method = "camera" | "upload" | "voice" | "text";
+
+const METHODS: { id: Method; icon: LucideIcon }[] = [
+  { id: "camera", icon: Camera },
+  { id: "upload", icon: ImageUp },
+  { id: "voice", icon: Mic },
+  { id: "text", icon: PenLine },
+];
+
 export function SosForm({ onSent }: { onSent: () => void }) {
-  const { t, pick, formatNumber } = useI18n();
+  const { t, pick } = useI18n();
   const { userPos, submitSos, offline, scenario } = useAppState();
 
+  const [method, setMethod] = useState<Method>("upload");
   const [hazard, setHazard] = useState<HazardType | "unknown">(scenario?.hazard ?? "unknown");
   const [description, setDescription] = useState("");
-  const [peopleCount, setPeopleCount] = useState(1);
-  const [vulnerable, setVulnerable] = useState<VulnerableFlags>({ children: false, elderly: false, disabled: false });
+  const [photo, setPhoto] = useState<PhotoState | null>(null);
+  const [counts, setCounts] = useState<AffectedCounts>(affected({ adults: 1 }));
   const [shareVulnerable, setShareVulnerable] = useState(false);
   const [queuedNotice, setQueuedNotice] = useState(false);
+  const [applied, setApplied] = useState(false);
 
-  const hasVulnerable = Object.values(vulnerable).some(Boolean);
+  const hasSensitive = SENSITIVE_GROUPS.some((g) => counts[g] > 0);
+
+  function onPhoto(next: PhotoState | null) {
+    setPhoto(next);
+    setApplied(false);
+    if (next?.analysis) applyAnalysis(next.analysis);
+  }
+
+  /** Pre-fill the report from what the photo shows; the resident can still change it. */
+  function applyAnalysis(a: ImageAnalysis) {
+    setHazard(a.hazard);
+    setDescription((d) => d || pick(a.findings));
+    setApplied(true);
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const usesPhoto = (method === "camera" || method === "upload") && photo;
+    const channel: ReportChannel = usesPhoto ? "photo" : method === "voice" ? "voice" : "text";
     const input: SosInput = {
       hazard,
       description: description.trim(),
-      peopleCount,
-      vulnerable,
-      shareVulnerable: hasVulnerable && shareVulnerable,
+      affected: counts,
+      shareVulnerable: hasSensitive && shareVulnerable,
       position: userPos,
+      channel,
+      photo: usesPhoto ? photo.photo : undefined,
+      photoAnalysis: usesPhoto ? (photo.analysis ?? undefined) : undefined,
     };
     submitSos(input);
     setDescription("");
+    setPhoto(null);
+    setApplied(false);
     if (offline) setQueuedNotice(true);
     else onSent();
   }
 
+  const isPhoto = method === "camera" || method === "upload";
+
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="flex items-center gap-3 px-1 pt-1">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/25">
-          <Siren size={20} aria-hidden />
-        </span>
-        <h2 className="text-lg font-bold">{t("sosTitle")}</h2>
+      <QuickSos onSent={onSent} />
+
+      <div className="flex items-center gap-3 px-1 pt-2">
+        <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+        <h2 className="text-sm font-bold text-slate-500 dark:text-slate-400">{t("orDescribe")}</h2>
+        <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
       </div>
 
       {queuedNotice && offline && (
@@ -54,6 +103,57 @@ export function SosForm({ onSent }: { onSent: () => void }) {
           {t("sosQueued")}
         </p>
       )}
+
+      <Card>
+        <SectionTitle icon={Sparkles}>{t("methodTitle")}</SectionTitle>
+        <div className="mb-4 grid grid-cols-4 gap-1.5" role="tablist">
+          {METHODS.map(({ id, icon: Icon }) => {
+            const active = method === id;
+            return (
+              <button
+                type="button"
+                key={id}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setMethod(id)}
+                className={`flex flex-col items-center gap-1 rounded-xl border-2 px-1 py-2 text-[11px] leading-tight font-semibold transition ${
+                  active
+                    ? "border-brand-navy bg-brand-navy text-white dark:border-white dark:bg-white dark:text-brand-navy"
+                    : "border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 dark:bg-slate-800/60 dark:text-slate-300"
+                }`}
+              >
+                <Icon size={19} aria-hidden />
+                {t(`method_${id}`)}
+              </button>
+            );
+          })}
+        </div>
+
+        {isPhoto && <PhotoInput key={method} mode={method} hint={hazard} value={photo} onChange={onPhoto} />}
+        {method === "voice" && <VoiceInput hint={hazard} transcript={description} onTranscript={setDescription} />}
+
+        {applied && isPhoto && (
+          <p className="mt-3 flex gap-1.5 text-xs text-violet-700 dark:text-violet-300">
+            <Sparkles size={13} className="mt-0.5 shrink-0" aria-hidden />
+            {t("analysisApplied")}
+          </p>
+        )}
+
+        {method !== "voice" && (
+          <label className={`block ${isPhoto ? "mt-3" : ""}`}>
+            <span className="mb-2 block text-sm font-bold">{t("sosDescription")}</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              dir="auto"
+              placeholder={t("sosDescriptionPlaceholder")}
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm transition placeholder:text-slate-400 focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-500/10 focus:outline-none dark:border-slate-700 dark:bg-slate-800/60 dark:focus:bg-slate-900"
+            />
+          </label>
+        )}
+      </Card>
 
       <Card>
         <fieldset>
@@ -88,83 +188,20 @@ export function SosForm({ onSent }: { onSent: () => void }) {
       </Card>
 
       <Card>
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold">{t("sosDescription")}</span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            maxLength={2000}
-            dir="auto"
-            placeholder={t("sosDescriptionPlaceholder")}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm transition placeholder:text-slate-400 focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-500/10 focus:outline-none dark:border-slate-700 dark:bg-slate-800/60 dark:focus:bg-slate-900"
-          />
-        </label>
-
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="text-sm font-bold">{t("sosPeople")}</span>
-          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-            <button
-              type="button"
-              onClick={() => setPeopleCount((n) => Math.max(1, n - 1))}
-              disabled={peopleCount <= 1}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm transition disabled:opacity-40 dark:bg-slate-900"
-              aria-label={t("decrease")}
-            >
-              <Minus size={15} aria-hidden />
-            </button>
-            <span className="w-9 text-center text-base font-bold tabular-nums" aria-live="polite">
-              {formatNumber(peopleCount)}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPeopleCount((n) => Math.min(500, n + 1))}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm transition dark:bg-slate-900"
-              aria-label={t("increase")}
-            >
-              <Plus size={15} aria-hidden />
-            </button>
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <fieldset>
-          <legend className="mb-3 text-sm font-bold">{t("sosVulnerable")}</legend>
-          <div className="flex flex-wrap gap-2">
-            {(["children", "elderly", "disabled"] as const).map((k) => {
-              const Icon = VULNERABLE_ICON[k];
-              const on = vulnerable[k];
-              return (
-                <button
-                  type="button"
-                  key={k}
-                  aria-pressed={on}
-                  onClick={() => setVulnerable((v) => ({ ...v, [k]: !v[k] }))}
-                  className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition ${
-                    on
-                      ? "border-sky-600 bg-sky-600 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-                  }`}
-                >
-                  {on ? <Check size={15} aria-hidden /> : <Icon size={15} aria-hidden />}
-                  {t(k)}
-                </button>
-              );
-            })}
-          </div>
-          {hasVulnerable && (
-            <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-xl bg-sky-50 p-3 text-xs text-sky-950 dark:bg-sky-500/10 dark:text-sky-100">
-              <input
-                type="checkbox"
-                checked={shareVulnerable}
-                onChange={(e) => setShareVulnerable(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-sky-600"
-              />
-              {t("sosConsent")}
-            </label>
-          )}
-        </fieldset>
+        <SectionTitle icon={Users}>{t("affectedTitle")}</SectionTitle>
+        <p className="-mt-1.5 mb-3 text-xs text-slate-500 dark:text-slate-400">{t("affectedHint")}</p>
+        <AffectedCounter value={counts} onChange={setCounts} />
+        {hasSensitive && (
+          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-xl bg-sky-50 p-3 text-xs text-sky-950 dark:bg-sky-500/10 dark:text-sky-100">
+            <input
+              type="checkbox"
+              checked={shareVulnerable}
+              onChange={(e) => setShareVulnerable(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-sky-600"
+            />
+            {t("sosConsent")}
+          </label>
+        )}
       </Card>
 
       <div className="flex gap-2.5 px-1 text-xs text-slate-500 dark:text-slate-400">
@@ -179,7 +216,14 @@ export function SosForm({ onSent }: { onSent: () => void }) {
         </p>
       </div>
 
-      <Button type="submit" variant="danger" size="lg" icon={Siren} className="w-full">
+      <Button
+        type="submit"
+        variant="danger"
+        size="lg"
+        icon={Siren}
+        className="w-full"
+        disabled={isPhoto && !!photo?.pending}
+      >
         {t("sosSend")}
       </Button>
     </form>

@@ -15,12 +15,13 @@ import {
   Shield,
   ShieldCheck,
   Ship,
+  TriangleAlert,
   WavesArrowUp,
   type IconNode,
 } from "lucide";
 import { useEffect } from "react";
-import { Circle, Polygon, TileLayer, useMap } from "react-leaflet";
-import type { HazardType, LatLng, ResponseTeam, TeamStatus, Zone } from "@/lib/types";
+import { Circle, Marker, Polygon, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import type { Bilingual, HazardType, LatLng, ResponseTeam, Scenario, TeamStatus, Zone } from "@/lib/types";
 
 export const RIYADH_CENTER: LatLng = [24.713, 46.675];
 
@@ -146,11 +147,67 @@ export function BaseTiles() {
   );
 }
 
-export function ZoneShape({ zone, color }: { zone: Zone; color: string }) {
-  const style = { color, weight: 2, fillColor: color, fillOpacity: 0.16, dashArray: "6 6" };
+/** Danger is always red on the map, whatever the hazard. */
+export const DANGER_COLOR = "#dc2626";
+
+export function ZoneShape({ zone, color = DANGER_COLOR }: { zone: Zone; color?: string }) {
+  const style = { color, weight: 2.5, fillColor: color, fillOpacity: 0.18, dashArray: "8 6" };
   return zone.kind === "circle" ? (
     <Circle center={zone.center} radius={zone.radiusM} pathOptions={style} />
   ) : (
     <Polygon positions={zone.points} pathOptions={style} />
+  );
+}
+
+const warningIcon = L.divIcon({
+  html: `<span class="rpa-warning">${svg(TriangleAlert, 15)}</span>`,
+  className: "rpa-icon",
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+});
+
+/** Middle point of a polyline, for placing a label on it. */
+function midpoint(path: LatLng[]): LatLng {
+  return path[Math.floor(path.length / 2)];
+}
+
+/** A scenario's danger zone and closed roads in red, with warning markers. */
+export function DangerLayer({
+  scenario,
+  labels,
+  pick,
+}: {
+  scenario: Scenario;
+  labels: { zone: string; road: string };
+  pick: (b: Bilingual) => string;
+}) {
+  const zoneLabel = scenario.zone.kind === "circle" ? scenario.zone.center : midpoint(scenario.zone.points);
+  return (
+    <>
+      <ZoneShape zone={scenario.zone} />
+      <Marker position={zoneLabel} icon={warningIcon} interactive>
+        <Tooltip direction="top" offset={[0, -12]}>
+          <strong>{labels.zone}</strong> · {pick(scenario.name)}
+        </Tooltip>
+      </Marker>
+      {scenario.closedRoads.map((road) => (
+        <Polyline
+          key={road.id}
+          positions={road.path}
+          pathOptions={{ color: DANGER_COLOR, weight: 7, opacity: 0.9, dashArray: "2 10", lineCap: "round" }}
+        >
+          <Tooltip sticky>
+            <strong>{labels.road}</strong> · {pick(road.label)}
+          </Tooltip>
+        </Polyline>
+      ))}
+      {scenario.closedRoads.map((road) => (
+        <Marker key={`w-${road.id}`} position={midpoint(road.path)} icon={warningIcon}>
+          <Tooltip direction="top" offset={[0, -12]}>
+            <strong>{labels.road}</strong> · {pick(road.label)}
+          </Tooltip>
+        </Marker>
+      ))}
+    </>
   );
 }
