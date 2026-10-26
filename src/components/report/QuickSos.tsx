@@ -7,10 +7,10 @@ import { useI18n } from "@/lib/i18n";
 import { useAppState } from "@/lib/store";
 import { useHold } from "@/lib/use-hold";
 
-export const HOLD_MS = 1500;
+const HOLD_MS = 1500;
 
 /** Sends a one-tap SOS: the current location, reported as critical. */
-export function useInstantSos() {
+function useInstantSos() {
   const { t } = useI18n();
   const { userPos, submitSos } = useAppState();
   return () =>
@@ -25,7 +25,7 @@ export function useInstantSos() {
 }
 
 /** Progress ring drawn around a press-and-hold button (fills over HOLD_MS while held). */
-export function HoldRing({ track = "#fecaca", fill = "#dc2626" }: { track?: string; fill?: string }) {
+function HoldRing({ track = "#fecaca", fill = "#dc2626" }: { track?: string; fill?: string }) {
   return (
     <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 -rotate-90" aria-hidden>
       <circle cx="50" cy="50" r="46" fill="none" stroke={track} strokeWidth="6" />

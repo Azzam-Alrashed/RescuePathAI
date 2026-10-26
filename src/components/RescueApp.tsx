@@ -8,7 +8,6 @@ import { BottomSheet, type SheetSnap } from "@/components/BottomSheet";
 import { BrandMark } from "@/components/BrandMark";
 import { HAZARD_ICON } from "@/components/icons";
 import { MapView } from "@/components/map/MapView";
-import { HOLD_MS, HoldRing, useInstantSos } from "@/components/report/QuickSos";
 import { ReportsList } from "@/components/ReportsList";
 import { MobileSimulationButton, SimulationPanel } from "@/components/SimulationPanel";
 import { SosForm } from "@/components/SosForm";
@@ -16,7 +15,6 @@ import { buttonClass } from "@/components/ui";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { AppStateProvider, useAppState } from "@/lib/store";
 import { useGuidanceRoute } from "@/lib/use-guidance-route";
-import { useHold } from "@/lib/use-hold";
 
 type Tab = "alert" | "sos" | "reports";
 
@@ -47,8 +45,9 @@ function Shell() {
   const pending = reports.filter((r) => r.status === "queued" || r.status === "failed").length;
   const ScenarioIcon = scenario ? HAZARD_ICON[scenario.hazard] : Bell;
 
+  // svh: the screen with the browser's toolbars showing, so nothing ends up behind them.
   return (
-    <div className="flex h-dvh flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-svh flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <header className="flex items-center gap-3 bg-brand-navy px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 text-white">
         <BrandMark />
         <div className="min-w-0 flex-1">
@@ -121,7 +120,7 @@ function Shell() {
           className="md:order-1 md:w-[420px] md:border-e md:border-slate-200 dark:md:border-slate-800"
         >
           <nav
-            className="m-3 mb-0 hidden grid-cols-3 gap-1 rounded-2xl bg-slate-200/70 p-1 md:grid dark:bg-slate-800/70"
+            className="mx-3 grid shrink-0 grid-cols-3 gap-1 rounded-2xl bg-slate-200/70 p-1 md:m-3 md:mb-0 dark:bg-slate-800/70"
             role="tablist"
           >
             <TabButton active={tab === "alert"} onClick={() => openTab("alert")} icon={ScenarioIcon}>
@@ -136,21 +135,13 @@ function Shell() {
               {pending > 0 && <CountBadge n={pending} />}
             </TabButton>
           </nav>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-3 md:pt-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {tab === "alert" && <AlertPanel guidance={guidance} />}
             {tab === "sos" && <SosForm onSent={() => openTab("reports")} />}
             {tab === "reports" && <ReportsList />}
           </div>
         </BottomSheet>
       </div>
-
-      <MobileTabBar
-        tab={tab}
-        onTab={openTab}
-        alertIcon={ScenarioIcon}
-        alertDot={!!scenario && inZone}
-        pending={pending}
-      />
     </div>
   );
 }
@@ -195,109 +186,13 @@ function TabButton({
       className={`flex h-10 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold transition ${
         active
           ? `bg-white shadow-sm dark:bg-slate-900 ${danger ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"}`
-          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+          : danger
+            ? "text-red-600 hover:bg-white/60 dark:text-red-400 dark:hover:bg-slate-900/60"
+            : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
       }`}
     >
       <Icon size={16} strokeWidth={2.2} aria-hidden />
       {children}
     </button>
-  );
-}
-
-/**
- * Phone navigation within thumb reach. The raised SOS button opens the report
- * form on a tap and sends an instant SOS when held.
- */
-function MobileTabBar({
-  tab,
-  onTab,
-  alertIcon: AlertIcon,
-  alertDot,
-  pending,
-}: {
-  tab: Tab;
-  onTab: (t: Tab) => void;
-  alertIcon: LucideIcon;
-  alertDot: boolean;
-  pending: number;
-}) {
-  const { t } = useI18n();
-  const sendInstantSos = useInstantSos();
-  const { holding, handlers } = useHold({
-    ms: HOLD_MS,
-    onComplete: () => {
-      sendInstantSos();
-      onTab("reports");
-    },
-    onTap: () => onTab("sos"),
-  });
-
-  const item = (active: boolean) =>
-    `flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition ${
-      active ? "text-brand-navy dark:text-white" : "text-slate-500 dark:text-slate-400"
-    }`;
-
-  return (
-    <nav
-      role="tablist"
-      className="relative z-[1100] grid grid-cols-3 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-slate-800 dark:bg-slate-900"
-    >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "alert"}
-        onClick={() => onTab("alert")}
-        className={item(tab === "alert")}
-      >
-        <span className="relative">
-          <AlertIcon size={22} aria-hidden />
-          {alertDot && (
-            <span className="absolute -end-1 -top-0.5">
-              <AlertDot />
-            </span>
-          )}
-        </span>
-        {t("tabAlert")}
-      </button>
-
-      <div className="flex flex-col items-center">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "sos"}
-          aria-label={`${t("tabSos")} – ${t("sosTabHint")}`}
-          {...handlers}
-          style={{ "--hold-ms": `${HOLD_MS}ms` } as React.CSSProperties}
-          className={`relative -mt-6 flex h-16 w-16 touch-none items-center justify-center rounded-full bg-red-600 text-white shadow-lg ring-4 shadow-red-600/40 ring-white transition select-none dark:ring-slate-900 ${
-            holding ? "rpa-holding scale-95" : ""
-          }`}
-        >
-          <HoldRing track="transparent" fill="#ffffff" />
-          <span className="flex flex-col items-center">
-            <Siren size={22} aria-hidden />
-            <span className="text-[11px] leading-none font-black tracking-wider">SOS</span>
-          </span>
-        </button>
-        <span className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{t("sosTabHint")}</span>
-      </div>
-
-      <button
-        type="button"
-        role="tab"
-        aria-selected={tab === "reports"}
-        onClick={() => onTab("reports")}
-        className={item(tab === "reports")}
-      >
-        <span className="relative">
-          <ClipboardList size={22} aria-hidden />
-          {pending > 0 && (
-            <span className="absolute -end-2.5 -top-1.5">
-              <CountBadge n={pending} />
-            </span>
-          )}
-        </span>
-        {t("tabReports")}
-      </button>
-    </nav>
   );
 }

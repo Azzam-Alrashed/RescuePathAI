@@ -85,7 +85,7 @@ function DashboardShell() {
   const toggleLocale = () => setLocale(locale === "ar" ? "en" : "ar");
 
   return (
-    <div className="flex h-dvh flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-svh flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <header className="flex items-center gap-3 bg-brand-navy px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 text-white">
         <BrandMark />
         <div className="min-w-0 flex-1">

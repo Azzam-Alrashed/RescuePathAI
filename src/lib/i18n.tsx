@@ -346,7 +346,6 @@ const UI = {
   back: { ar: "رجوع", en: "Back" },
   moreActions: { ar: "المزيد من الخيارات", en: "More actions" },
   sheetHandle: { ar: "اسحب لتكبير اللوحة أو تصغيرها", en: "Drag to resize the panel" },
-  sosTabHint: { ar: "اضغط مطولًا للاستغاثة الفورية", en: "Hold for instant SOS" },
   viewQueue: { ar: "البلاغات", en: "Reports" },
   viewMap: { ar: "الخريطة", en: "Map" },
   loadingMap: { ar: "جارٍ تحميل الخريطة…", en: "Loading map…" },
